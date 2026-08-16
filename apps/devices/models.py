@@ -27,7 +27,6 @@ class ConnectorType(models.TextChoices):
     WINDOWS_REMOTE = 'WINDOWS_REMOTE', _('Windows Remote Management')
     SSH = 'SSH', _('SSH / SFTP')
     SFTP = 'SFTP', _('SFTP Direct')
-    MOCK = 'MOCK', _('Geliştirme / Mock Connector')
 
 
 def get_fernet_cipher():

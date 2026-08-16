@@ -266,7 +266,6 @@ class DeviceSystemInfoAPIView(views.APIView):
 
     def get(self, request, id):
         import time
-        import random
         try:
             import psutil
         except ImportError:
@@ -681,10 +680,47 @@ class SyncJobRunAPIView(views.APIView):
         from apps.devices.models import SyncJob
         job = get_object_or_404(SyncJob, id=id)
 
-        # Perform instant synchronization
+        # Perform real synchronization via connector
         job.last_run_at = timezone.now()
-        job.last_status = 'SUCCESS'
-        job.last_log = f"[{timezone.now().strftime('%H:%M:%S')}] '{job.remote_path}' dizini '{job.local_destination}' hedefine başarıyla eşitlendi. (12 dosya senkronize edildi, 0 hata)"
+        try:
+            connector = ConnectorFactory.get_connector(job.device)
+            file_list = connector.list_files(job.remote_path)
+            file_count = len(file_list) if file_list else 0
+
+            # Download each file to local destination
+            synced = 0
+            errors = 0
+            for f in (file_list or []):
+                if f.get('type') == 'file':
+                    try:
+                        remote_file_path = f.get('path', '')
+                        if remote_file_path:
+                            local_path = os.path.join(
+                                job.local_destination,
+                                os.path.basename(remote_file_path)
+                            )
+                            os.makedirs(job.local_destination, exist_ok=True)
+                            content = connector.download_file(remote_file_path)
+                            if content:
+                                with open(local_path, 'wb') as fp:
+                                    if hasattr(content, 'read'):
+                                        fp.write(content.read())
+                                    else:
+                                        fp.write(content)
+                                synced += 1
+                    except Exception:
+                        errors += 1
+
+            job.last_status = 'SUCCESS' if errors == 0 else 'PARTIAL'
+            job.last_log = (
+                f"[{timezone.now().strftime('%H:%M:%S')}] "
+                f"'{job.remote_path}' → '{job.local_destination}': "
+                f"{synced} dosya senkronize edildi, {errors} hata."
+            )
+        except Exception as e:
+            job.last_status = 'ERROR'
+            job.last_log = f"[{timezone.now().strftime('%H:%M:%S')}] Senkronizasyon hatası: {str(e)}"
+
         job.save()
 
         log_audit_event(
@@ -692,13 +728,13 @@ class SyncJobRunAPIView(views.APIView):
             operation='SYNC_BACKUP_EXECUTE',
             device=job.device,
             path=job.remote_path,
-            status='SUCCESS',
+            status=job.last_status,
             ip_address=request.META.get('REMOTE_ADDR'),
             metadata={'job_name': job.name, 'destination': job.local_destination}
         )
 
         return Response({
-            'success': True,
+            'success': job.last_status in ('SUCCESS', 'PARTIAL'),
             'job_id': str(job.id),
             'last_run_at': job.last_run_at.strftime('%d.%m.%Y %H:%M:%S'),
             'last_status': job.last_status,

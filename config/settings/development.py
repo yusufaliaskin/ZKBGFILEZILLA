@@ -35,6 +35,3 @@ REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
     'rest_framework.renderers.BrowsableAPIRenderer',
 ]
 
-# Real SSH/SFTP Connectors enabled by default
-USE_MOCK_CONNECTORS = False
-
