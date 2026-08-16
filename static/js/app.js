@@ -149,14 +149,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Inform backend if logged in
     try {
-      fetch('/set-theme/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': (document.querySelector('meta[name="csrf-token"]') || {}).content || ''
-        },
-        body: JSON.stringify({ theme: theme })
-      }).catch(function() {});
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
+      if (csrfToken && csrfToken.length >= 32) {
+        fetch('/set-theme/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({ theme: theme })
+        }).catch(function() {});
+      }
     } catch(e) {}
 
     window.dispatchEvent(new Event("themeChanged"));

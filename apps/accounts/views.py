@@ -81,7 +81,17 @@ def profile_view(request):
 @require_POST
 def set_theme_preference(request):
     """Endpoint to persist user theme preference (light/dark)."""
-    theme = request.POST.get('theme', 'light')
+    import json
+    theme = 'light'
+    try:
+        if request.content_type == 'application/json' or (request.body and request.body.startswith(b'{')):
+            data = json.loads(request.body)
+            theme = data.get('theme', 'light')
+        else:
+            theme = request.POST.get('theme', 'light')
+    except Exception:
+        theme = request.POST.get('theme', 'light')
+
     if theme in ['light', 'dark'] and hasattr(request.user, 'profile'):
         profile = request.user.profile
         profile.theme_preference = theme

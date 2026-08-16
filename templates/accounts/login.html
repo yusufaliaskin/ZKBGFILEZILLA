@@ -641,18 +641,6 @@
         document.documentElement.setAttribute('data-theme', theme);
         try { localStorage.setItem('zk_theme', theme); } catch(e) {}
 
-        // Inform backend
-        try {
-          fetch('/set-theme/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': (document.querySelector('meta[name="csrf-token"]') || {}).content || ''
-            },
-            body: JSON.stringify({ theme: theme })
-          }).catch(function(){});
-        } catch(e) {}
-
         if (animate) {
           transitionTimeout = setTimeout(function() {
             document.documentElement.classList.remove('theme-transitioning');
