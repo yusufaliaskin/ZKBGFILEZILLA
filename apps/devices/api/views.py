@@ -298,11 +298,25 @@ class DeviceSystemInfoAPIView(views.APIView):
         disk_total_bytes = 0
         disk_percent = 0.0
         uptime_seconds = 0
-        uptime_display = "12g 4s 18dk"
-        process_count = 124
-        latency_ms = round(random.uniform(0.8, 2.4), 1)
+        uptime_display = "--"
+        process_count = 0
+        latency_ms = None
 
-        # Try active connector first if online
+        # Measure real network latency via socket ping
+        import socket
+        port = device.port or (22 if not is_win else 5985)
+        start_t = time.perf_counter()
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.6)
+            res = sock.connect_ex((device.ip_address, int(port)))
+            sock.close()
+            if res == 0:
+                latency_ms = round((time.perf_counter() - start_t) * 1000.0, 1)
+        except Exception:
+            latency_ms = None
+
+        # Try active real connector if online
         try:
             connector = ConnectorFactory.get_connector(device)
             sys_info = connector.get_system_info()

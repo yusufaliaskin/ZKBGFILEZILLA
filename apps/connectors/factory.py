@@ -8,7 +8,6 @@ from typing import Dict
 from .base import DeviceConnector
 from .linux import LinuxConnector
 from .windows import WindowsConnector
-from .mock import MockConnector
 
 
 _CONNECTOR_CACHE: Dict[str, DeviceConnector] = {}
@@ -17,8 +16,8 @@ _CONNECTOR_CACHE: Dict[str, DeviceConnector] = {}
 class ConnectorFactory:
     """
     Factory creating and caching active DeviceConnector instances.
-    Uses Paramiko SSH/SFTP connectors for production Linux and Windows,
-    and MockConnector for standalone test/simulation nodes.
+    Uses 100% Real Paramiko SSH/SFTP connectors for Linux and OpenSSH/WinRM for Windows.
+    Zero mock simulation or fallback.
     """
 
     @classmethod
@@ -32,9 +31,7 @@ class ConnectorFactory:
             connector.device = device
             return connector
 
-        if getattr(device, 'connector_type', None) == 'MOCK':
-            connector = MockConnector(device)
-        elif device.operating_system == 'WINDOWS' or getattr(device, 'connector_type', None) == 'WINDOWS_REMOTE':
+        if device.operating_system == 'WINDOWS' or getattr(device, 'connector_type', None) == 'WINDOWS_REMOTE':
             connector = WindowsConnector(device)
         else:
             connector = LinuxConnector(device)
