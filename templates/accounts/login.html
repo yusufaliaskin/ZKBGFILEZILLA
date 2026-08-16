@@ -53,146 +53,228 @@
       padding: 24px;
       position: relative;
       overflow-x: hidden;
-      transition: background-color 0.25s ease, color 0.25s ease;
+      transition: background-color 0.35s ease, color 0.35s ease;
     }
 
-    /* Ambient Background Glow */
+    /* === Ambient Background === */
     body::before {
       content: "";
       position: fixed;
-      top: -12%;
+      top: -15%;
       left: 50%;
       transform: translateX(-50%);
-      width: 700px;
-      height: 420px;
-      background: radial-gradient(circle, rgba(227, 6, 19, 0.08) 0%, rgba(227, 6, 19, 0.02) 45%, transparent 70%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(227, 6, 19, 0.07) 0%, rgba(227, 6, 19, 0.02) 40%, transparent 70%);
       pointer-events: none;
       z-index: 0;
+      animation: ambientPulse 6s ease-in-out infinite alternate;
     }
 
-    /* Ambient Dot Grid Overlay */
+    @keyframes ambientPulse {
+      0% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+      100% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+    }
+
+    /* Dot Grid Overlay */
     body::after {
       content: "";
       position: fixed;
       inset: 0;
       background-image: radial-gradient(var(--border-default, rgba(0, 0, 0, 0.06)) 1px, transparent 1px);
       background-size: 24px 24px;
-      opacity: 0.65;
+      opacity: 0.5;
       pointer-events: none;
       z-index: 0;
     }
 
-    .pill-theme-switch-container {
+    /* === Top Bar Buttons === */
+    .login-topbar {
       position: fixed;
-      top: 24px;
-      right: 28px;
+      top: 0;
+      left: 0;
+      right: 0;
       z-index: 100;
       display: flex;
       align-items: center;
-      gap: 10px;
-      user-select: none;
+      justify-content: space-between;
+      padding: 20px 28px;
+      pointer-events: none;
     }
 
-    .pill-theme-track {
-      width: 54px;
-      height: 30px;
-      background: #18181B;
-      border: 1.5px solid rgba(255, 255, 255, 0.12);
-      border-radius: 30px;
-      padding: 3px;
+    .login-topbar > * {
+      pointer-events: auto;
+    }
+
+    /* Portal Button (Top-Left) */
+    .portal-home-btn {
       display: flex;
       align-items: center;
+      gap: 8px;
+      padding: 8px 16px 8px 12px;
+      background: var(--bg-card, rgba(255,255,255,0.85));
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-default, rgba(0,0,0,0.08));
+      border-radius: 12px;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 700;
+      font-family: inherit;
+      letter-spacing: 0.2px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      transition: all 0.2s ease;
       cursor: pointer;
-      position: relative;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
-      transition: background-color 0.25s ease, border-color 0.25s ease;
     }
 
-    [data-theme="dark"] .pill-theme-track {
-      background: #090D16;
-      border-color: rgba(255, 255, 255, 0.16);
+    .portal-home-btn:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+      border-color: var(--zk-red);
+      color: var(--zk-red);
     }
 
-    [data-theme="light"] .pill-theme-track {
-      background: #FFFFFF;
-      border-color: rgba(0, 0, 0, 0.12);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    .portal-home-btn:hover .portal-icon {
+      color: var(--zk-red);
     }
 
-    .pill-theme-knob {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: #E30613;
+    .portal-home-btn:active {
+      transform: translateY(0);
+    }
+
+    .portal-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #FFFFFF;
-      box-shadow: 0 2px 6px rgba(227, 6, 19, 0.45);
-      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      color: var(--text-secondary);
+      transition: color 0.2s ease;
     }
 
-    [data-theme="dark"] .pill-theme-knob {
-      transform: translateX(0);
+    /* Theme Toggle (Day/Night — no label, just track) */
+    .login-theme-toggle {
+      cursor: pointer;
+      user-select: none;
+      padding: 5px;
+      border-radius: 22px;
+      background: var(--bg-card, rgba(255,255,255,0.85));
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-default, rgba(0,0,0,0.08));
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
     }
 
-    [data-theme="light"] .pill-theme-knob {
-      transform: translateX(24px);
+    .login-theme-toggle:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
     }
 
-    /* Glassmorphism Elevated Login Card */
+    .login-theme-toggle:hover .daynight-switch-track {
+      transform: scale(1.05);
+    }
+
+    /* === Login Card === */
     .login-elevated-card {
       width: 100%;
-      max-width: 440px;
+      max-width: 420px;
       background: var(--bg-card, #FFFFFF);
       border: 1px solid var(--border-default, rgba(0, 0, 0, 0.08));
-      border-radius: 20px;
-      padding: 40px 36px 32px;
+      border-radius: 24px;
+      padding: 44px 38px 36px;
       position: relative;
       z-index: 10;
-      box-shadow: var(--shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.12));
-      backdrop-filter: blur(16px);
-      animation: cardFadeIn 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow:
+        0 0 0 1px var(--border-subtle, rgba(0,0,0,0.04)),
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        0 24px 60px rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(20px);
+      animation: cardSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    @keyframes cardFadeIn {
-      from { opacity: 0; transform: translateY(18px); }
-      to { opacity: 1; transform: translateY(0); }
+    [data-theme="dark"] .login-elevated-card {
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 8px 32px rgba(0, 0, 0, 0.35),
+        0 24px 60px rgba(0, 0, 0, 0.3);
     }
 
+    @keyframes cardSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.97);
+        filter: blur(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    /* === Brand Header === */
     .brand-logo-hero {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      margin-bottom: 26px;
+      margin-bottom: 30px;
+    }
+
+    .brand-logo-ring {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      background: var(--bg-base, #F0F2F5);
+      border: 1px solid var(--border-default, rgba(0,0,0,0.08));
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      animation: logoFloat 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes logoFloat {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-4px); }
     }
 
     .brand-logo-img {
-      width: 52px;
-      height: 52px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
-      margin-bottom: 12px;
     }
 
     .brand-hero-title {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 800;
       color: var(--text-primary);
-      letter-spacing: -0.3px;
+      letter-spacing: -0.4px;
+      line-height: 1.3;
     }
 
     .brand-hero-subtitle {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--zk-red);
-      letter-spacing: 1.2px;
-      margin-top: 2px;
+      letter-spacing: 2px;
+      margin-top: 4px;
       text-transform: uppercase;
     }
 
+    .brand-divider {
+      width: 48px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--zk-red), transparent);
+      border-radius: 3px;
+      margin: 16px auto 0;
+      opacity: 0.5;
+    }
+
+    /* === Form Inputs === */
     .styled-input-group {
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
 
     .styled-input-label {
@@ -200,8 +282,9 @@
       font-size: 12px;
       font-weight: 700;
       color: var(--text-secondary);
-      margin-bottom: 7px;
-      letter-spacing: 0.2px;
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
     }
 
     .styled-input-wrapper {
@@ -213,39 +296,49 @@
 
     .styled-input-icon {
       position: absolute;
-      left: 15px;
+      left: 16px;
       color: var(--text-muted);
       pointer-events: none;
       z-index: 3;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: color 0.2s ease;
+    }
+
+    .styled-input-wrapper:focus-within .styled-input-icon {
+      color: var(--zk-red);
     }
 
     .styled-login-input {
       width: 100% !important;
-      height: 48px !important;
-      padding: 0 44px 0 46px !important;
-      background: var(--bg-card, rgba(255, 255, 255, 0.9)) !important;
+      height: 50px !important;
+      padding: 0 44px 0 48px !important;
+      background: var(--bg-base, #F0F2F5) !important;
       border: 1.5px solid var(--border-default, #CBD5E1) !important;
-      border-radius: 12px !important;
+      border-radius: 14px !important;
       font-size: 13.5px !important;
       font-family: inherit !important;
       color: var(--text-primary) !important;
       outline: none !important;
-      transition: all 0.2s ease !important;
+      transition: all 0.25s ease !important;
       box-sizing: border-box !important;
+    }
+
+    .styled-login-input::placeholder {
+      color: var(--text-muted) !important;
+      font-weight: 500;
     }
 
     .styled-login-input:focus {
       border-color: var(--zk-red) !important;
-      box-shadow: 0 0 0 3.5px var(--zk-red-soft) !important;
+      box-shadow: 0 0 0 4px var(--zk-red-soft) !important;
       background: var(--bg-card) !important;
     }
 
     .pwd-toggle-btn {
       position: absolute;
-      right: 12px;
+      right: 14px;
       background: transparent;
       border: none;
       color: var(--text-muted);
@@ -253,19 +346,23 @@
       padding: 4px;
       display: flex;
       align-items: center;
+      border-radius: 6px;
+      transition: all 0.15s ease;
     }
 
     .pwd-toggle-btn:hover {
       color: var(--text-primary);
+      background: var(--bg-hover, rgba(0,0,0,0.04));
     }
 
+    /* === Submit Button === */
     .login-submit-btn {
       width: 100%;
-      height: 48px;
+      height: 50px;
       background: var(--zk-red);
       color: #FFFFFF;
       border: none;
-      border-radius: 12px;
+      border-radius: 14px;
       font-size: 14px;
       font-weight: 700;
       font-family: inherit;
@@ -275,30 +372,50 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-top: 10px;
-      box-shadow: 0 4px 18px var(--zk-red-glow);
-      transition: all 0.2s ease;
+      margin-top: 8px;
+      box-shadow: 0 4px 20px var(--zk-red-glow);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-submit-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+      pointer-events: none;
     }
 
     .login-submit-btn:hover {
       background: var(--zk-red-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 22px rgba(227, 6, 19, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(227, 6, 19, 0.5);
     }
 
     .login-submit-btn:active {
       transform: translateY(0);
+      box-shadow: 0 2px 12px var(--zk-red-glow);
     }
 
+    .login-submit-btn .btn-arrow {
+      transition: transform 0.2s ease;
+    }
+
+    .login-submit-btn:hover .btn-arrow {
+      transform: translateX(3px);
+    }
+
+    /* === Trust Bar === */
     .security-trust-bar {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      margin-top: 24px;
-      padding-top: 18px;
-      border-top: 1px solid var(--border-subtle);
-      font-size: 11.5px;
+      gap: 16px;
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.06));
+      font-size: 11px;
       color: var(--text-muted);
     }
 
@@ -306,45 +423,111 @@
       display: flex;
       align-items: center;
       gap: 5px;
+      opacity: 0.8;
     }
 
+    .trust-badge svg {
+      opacity: 0.6;
+    }
+
+    /* === Footer === */
     .app-login-footer {
-      margin-top: 24px;
-      font-size: 11.5px;
+      margin-top: 28px;
+      font-size: 11px;
       color: var(--text-muted);
       text-align: center;
       position: relative;
       z-index: 10;
+      opacity: 0.7;
     }
 
+    /* === Alert === */
     .alert-banner {
-      padding: 11px 14px;
-      border-radius: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
       font-size: 12.5px;
       font-weight: 600;
       background: rgba(227, 6, 19, 0.08);
       color: #E30613;
-      border: 1px solid rgba(227, 6, 19, 0.2);
-      margin-bottom: 18px;
+      border: 1px solid rgba(227, 6, 19, 0.18);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .alert-banner::before {
+      content: "⚠";
+      font-size: 14px;
+    }
+
+    /* === Responsive === */
+    @media (max-width: 480px) {
+      .login-elevated-card {
+        padding: 32px 24px 28px;
+        border-radius: 20px;
+      }
+
+      .login-topbar {
+        padding: 14px 16px;
+      }
+
+      .portal-home-btn span {
+        display: none;
+      }
+
+      .portal-home-btn {
+        padding: 8px;
+      }
+    }
+
+    /* === View Transition Support === */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none;
+      mix-blend-mode: normal;
     }
   </style>
 </head>
 <body>
 
-  <!-- Theme Toggle Switch -->
-  <div class="pill-theme-switch-container">
-    <div class="pill-theme-track" id="loginThemeSwitch" onclick="toggleLoginTheme()" title="Koyu / Açık Tema">
-      <div class="pill-theme-knob">
-        <svg id="themeKnobIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+  <!-- Top Bar: Portal Button (Left) + Theme Toggle (Right) -->
+  <div class="login-topbar">
+    <!-- Portal Home Button -->
+    <a href="https://www.ziraatkatilim.com.tr" class="portal-home-btn" target="_blank" rel="noopener noreferrer" title="Ana Sunucuya Git">
+      <span class="portal-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
         </svg>
+      </span>
+      <span>Ana Portal</span>
+    </a>
+
+    <!-- Theme Toggle (Day/Night — no label) -->
+    <div class="login-theme-toggle" id="loginThemeSwitch" title="Temayı Değiştir">
+      <div class="daynight-switch-track">
+        <div class="sky-clouds">
+          <span class="sky-cloud cloud-lg"></span>
+          <span class="sky-cloud cloud-sm"></span>
+          <span class="sky-cloud cloud-xs"></span>
+        </div>
+        <div class="sky-stars">
+          <span class="sky-star star-1"></span>
+          <span class="sky-star star-2"></span>
+          <span class="sky-star star-3"></span>
+          <span class="sky-star star-4"></span>
+          <span class="sky-star star-5"></span>
+          <span class="sky-star star-6"></span>
+        </div>
+        <div class="daynight-thumb">
+          <div class="moon-craters">
+            <span class="crater crater-1"></span>
+            <span class="crater crater-2"></span>
+            <span class="crater crater-3"></span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -352,9 +535,12 @@
   <!-- Login Card -->
   <div class="login-elevated-card">
     <div class="brand-logo-hero">
-      <img src="{% static 'img/zk.png' %}" alt="ZK Logo" class="brand-logo-img">
+      <div class="brand-logo-ring">
+        <img src="{% static 'img/zk.png' %}" alt="ZK Logo" class="brand-logo-img">
+      </div>
       <div class="brand-hero-title">Bilgi Güvenliği Portalı</div>
       <div class="brand-hero-subtitle">Remote Operations Center</div>
+      <div class="brand-divider"></div>
     </div>
 
     {% if messages %}
@@ -396,7 +582,7 @@
 
       <button type="submit" class="login-submit-btn">
         <span>Güvenli Giriş Yap</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="5" y1="12" x2="19" y2="12"></line>
           <polyline points="12 5 19 12 12 19"></polyline>
         </svg>
@@ -405,15 +591,15 @@
 
     <div class="security-trust-bar">
       <div class="trust-badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
         <span>256-Bit SSL Şifreli</span>
       </div>
-      <span>&bull;</span>
+      <span style="opacity:0.3;">&bull;</span>
       <div class="trust-badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
         </svg>
         <span>Canlı SIEM Audit</span>
@@ -438,12 +624,95 @@
       }
     }
 
-    function toggleLoginTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('zk_theme', next);
-    }
+    // === Theme Toggle (same view-transition wave as sidebar) ===
+    (function() {
+      var transitionTimeout = null;
+
+      function getCurrentTheme() {
+        return document.documentElement.getAttribute('data-theme') || 'light';
+      }
+
+      function setTheme(theme, animate) {
+        if (animate) {
+          if (transitionTimeout) clearTimeout(transitionTimeout);
+          document.documentElement.classList.add('theme-transitioning');
+        }
+
+        document.documentElement.setAttribute('data-theme', theme);
+        try { localStorage.setItem('zk_theme', theme); } catch(e) {}
+
+        // Inform backend
+        try {
+          fetch('/set-theme/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': (document.querySelector('meta[name="csrf-token"]') || {}).content || ''
+            },
+            body: JSON.stringify({ theme: theme })
+          }).catch(function(){});
+        } catch(e) {}
+
+        if (animate) {
+          transitionTimeout = setTimeout(function() {
+            document.documentElement.classList.remove('theme-transitioning');
+          }, 400);
+        }
+      }
+
+      function toggleThemeWithWave(e) {
+        var current = getCurrentTheme();
+        var next = current === 'dark' ? 'light' : 'dark';
+
+        // View Transition API (circular clip-path wave)
+        if (!document.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          setTheme(next, true);
+          return;
+        }
+
+        var x = (e && typeof e.clientX === 'number') ? e.clientX : (window.innerWidth - 80);
+        var y = (e && typeof e.clientY === 'number') ? e.clientY : 30;
+
+        var maxDist = Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y)
+        );
+        var endRadius = Math.ceil(maxDist * 1.25);
+
+        if (transitionTimeout) clearTimeout(transitionTimeout);
+        document.documentElement.classList.remove('theme-transitioning');
+
+        var transition = document.startViewTransition(function() {
+          setTheme(next, false);
+        });
+
+        transition.ready.then(function() {
+          document.documentElement.animate(
+            {
+              clipPath: [
+                'circle(0px at ' + x + 'px ' + y + 'px)',
+                'circle(' + endRadius + 'px at ' + x + 'px ' + y + 'px)'
+              ]
+            },
+            {
+              duration: 620,
+              easing: 'cubic-bezier(0.2, 0.9, 0.3, 1)',
+              pseudoElement: '::view-transition-new(root)',
+              fill: 'forwards'
+            }
+          );
+        });
+      }
+
+      // Bind click
+      var sw = document.getElementById('loginThemeSwitch');
+      if (sw) {
+        sw.addEventListener('click', function(e) {
+          e.stopPropagation();
+          toggleThemeWithWave(e);
+        });
+      }
+    })();
   </script>
 </body>
 </html>
