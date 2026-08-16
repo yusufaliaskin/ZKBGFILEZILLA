@@ -1,0 +1,294 @@
+{% load static accounts_extras %}
+<aside class="tree-sidebar" id="sidebar">
+  <!-- 1. Header with Official ZK Brand Logo & Typography -->
+  <div class="sidebar-top-header">
+    <a href="{% url 'dashboard:index' %}" class="brand-identity-link" title="ZK Remote Operations Center">
+      <!-- Left Logo Icon (zk.png) -->
+      <div class="brand-emblem-box" style="padding:0;overflow:hidden;background:transparent;box-shadow:none;">
+        <img src="{% static 'img/zk.png' %}" alt="ZK"
+          style="width:36px;height:36px;object-fit:contain;border-radius:8px;">
+      </div>
+      <!-- Right Brand Typography (Hidden when collapsed) -->
+      <div class="brand-text-column">
+        <span class="brand-title"
+          style="font-size:15px;font-weight:800;color:var(--text-primary);letter-spacing:-0.3px;">Bilgi Güvenliği</span>
+        <span class="brand-subtitle"
+          style="font-size:9px;font-weight:700;color:var(--zk-red);letter-spacing:1px;">REMOTE OPS CENTER</span>
+      </div>
+    </a>
+  </div>
+
+  <!-- 2. Sidebar Quick Search Input -->
+  <div class="sidebar-search-zone">
+    <div class="sidebar-search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="sidebarMenuFilter" placeholder="Menüde ara..." autocomplete="off">
+    </div>
+  </div>
+
+  <!-- 3. Scrollable Navigation Menu -->
+  <div class="sidebar-scroll-content">
+
+    <!-- SECTION 1: ANA MENÜ -->
+    <div class="menu-section">
+      <div class="section-label">ANA MENÜ</div>
+
+      <!-- Dashboard -->
+      <div class="tree-single-wrap" data-portal-title="Dashboard" data-portal-url="{% url 'dashboard:index' %}"
+        data-portal-active="{% if request.resolver_match.app_name == 'dashboard' %}true{% else %}false{% endif %}">
+        <a href="{% url 'dashboard:index' %}"
+          class="tree-item-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}"
+          title="Dashboard">
+          <div class="tree-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </div>
+          <span class="tree-item-text">Dashboard</span>
+        </a>
+      </div>
+
+      <!-- Cihaz Yönetimi -->
+      <div class="tree-group {% if request.resolver_match.app_name == 'devices' %}has-active open{% endif %}"
+        data-portal-group="Cihaz Yönetimi">
+        <a href="{% url 'devices:list' %}" class="tree-group-header" data-tree-toggle="devices" title="Cihaz Envanteri">
+          <div class="tree-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+          </div>
+          <span class="tree-item-text">Cihaz Envanteri</span>
+          <span class="tree-chevron-btn" title="Alt Menüyü Aç/Kapat">
+            <svg class="tree-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </a>
+
+        <div class="tree-sub-menu">
+          <div class="tree-sub-menu-inner">
+            <a href="{% url 'devices:list' %}"
+              class="tree-sub-item {% if request.resolver_match.app_name == 'devices' and not request.GET.os and 'terminal' not in request.path %}active{% endif %}">
+              <span class="space-dot cyan"></span>
+              <span>Tüm Düğümler</span>
+            </a>
+            <a href="{% url 'devices:list' %}?os=LINUX"
+              class="tree-sub-item {% if request.GET.os == 'LINUX' %}active{% endif %}"
+              style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="space-dot green"></span>
+                <span>Pardus / Linux</span>
+              </div>
+              <img src="{% static 'img/pardus.png' %}" alt="Pardus" style="width:16px;height:16px;object-fit:contain;">
+            </a>
+            <a href="{% url 'devices:list' %}?os=WINDOWS"
+              class="tree-sub-item {% if request.GET.os == 'WINDOWS' %}active{% endif %}"
+              style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="space-dot blue"></span>
+                <span>Windows Düğümleri</span>
+              </div>
+              <img src="{% static 'img/windows.png' %}" alt="Windows" style="width:15px;height:15px;object-fit:contain;">
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dosya Yönetimi -->
+      <div class="tree-group {% if request.resolver_match.app_name == 'files' %}has-active open{% endif %}"
+        data-portal-group="Dosya Yönetimi">
+        <a href="{% url 'files:manager' %}" class="tree-group-header" data-tree-toggle="files" title="Dosya Yöneticisi">
+          <div class="tree-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <span class="tree-item-text">Dosya Yönetimi</span>
+          <span class="tree-chevron-btn" title="Alt Menüyü Aç/Kapat">
+            <svg class="tree-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </a>
+
+        <div class="tree-sub-menu">
+          <div class="tree-sub-menu-inner">
+            <a href="{% url 'files:manager' %}"
+              class="tree-sub-item {% if request.resolver_match.app_name == 'files' and 'transfer' not in request.path %}active{% endif %}">
+              <span class="space-dot cyan"></span>
+              <span>Uzak Dosya Gezgini</span>
+            </a>
+            <a href="{% url 'files:transfer' %}"
+              class="tree-sub-item {% if 'transfer' in request.path %}active{% endif %}"
+              style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="space-dot orange"></span>
+                <span>ZKFileZilla Aktarım</span>
+              </div>
+              <span class="badge orange" style="font-size:9px;padding:1px 5px;border-radius:4px;">TRANSFER</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canlı Web Terminali (Top-Level Item) -->
+      <div class="tree-single-wrap" data-portal-title="Canlı Terminal" data-portal-url="{% url 'terminal' %}"
+        data-portal-active="{% if 'terminal' in request.path %}true{% else %}false{% endif %}">
+        <a href="{% url 'terminal' %}" class="tree-item-link {% if 'terminal' in request.path %}active{% endif %}"
+          title="Canlı Web Terminali">
+          <div class="tree-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+          </div>
+          <span class="tree-item-text">Canlı Terminal</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- SECTION 2: AUDIT & GÜVENLİK -->
+    <div class="menu-section">
+      <div class="section-label">AUDIT &amp; GÜVENLİK</div>
+
+      <div class="tree-group {% if request.resolver_match.app_name == 'audit' %}has-active open{% endif %}"
+        data-portal-group="Audit Akışı">
+        <a href="{% url 'audit:list' %}" class="tree-group-header" data-tree-toggle="audit" title="Audit Günlükleri">
+          <div class="tree-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <span class="tree-item-text">Audit &amp; Günlükler</span>
+          <span class="tree-chevron-btn" title="Alt Menüyü Aç/Kapat">
+            <svg class="tree-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </a>
+
+        <div class="tree-sub-menu">
+          <div class="tree-sub-menu-inner">
+            <a href="{% url 'audit:list' %}"
+              class="tree-sub-item {% if request.resolver_match.app_name == 'audit' %}active{% endif %}">
+              <span class="space-dot orange"></span>
+              <span>Güvenlik Olayları</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: SİSTEM & YÖNETİM -->
+    <div class="menu-section">
+      <div class="section-label">SİSTEM &amp; YÖNETİM</div>
+
+      <!-- Yönetim Merkezi (/manage/) -->
+      <div class="tree-single-wrap" data-portal-title="Yönetim Merkezi" data-portal-url="{% url 'accounts:manage' %}"
+        data-portal-active="{% if 'manage' in request.path %}true{% else %}false{% endif %}">
+        <a href="{% url 'accounts:manage' %}" class="tree-item-link {% if 'manage' in request.path %}active{% endif %}"
+          title="Kullanıcı ve Sistem Yönetimi">
+          <div class="tree-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <span class="tree-item-text">Yönetim Merkezi</span>
+        </a>
+      </div>
+
+      <!-- Profil ve Sistem Ayarları -->
+      <div
+        class="tree-group {% if request.resolver_match.app_name == 'accounts' and 'manage' not in request.path %}has-active open{% endif %}"
+        data-portal-group="Sistem Ayarları">
+        <a href="{% url 'accounts:settings' %}" class="tree-group-header" data-tree-toggle="system"
+          title="Profil ve Sistem Ayarları">
+          <div class="tree-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </div>
+          <span class="tree-item-text">Ayarlar &amp; Profil</span>
+          <span class="tree-chevron-btn" title="Alt Menüyü Aç/Kapat">
+            <svg class="tree-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </a>
+
+        <div class="tree-sub-menu">
+          <div class="tree-sub-menu-inner">
+            <a href="{% url 'accounts:settings' %}"
+              class="tree-sub-item {% if 'settings' in request.path %}active{% endif %}">
+              <span class="space-dot cyan"></span>
+              <span>Sistem Ayarları</span>
+            </a>
+            <a href="{% url 'accounts:profile' %}"
+              class="tree-sub-item {% if 'profile' in request.path %}active{% endif %}">
+              <span class="space-dot purple"></span>
+              <span>Kullanıcı Profili</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 4. Sidebar Bottom Theme Footer (Day/Night Realistic Toggle Switch) -->
+  <div class="sidebar-theme-footer">
+    <div class="theme-daynight-container" id="sidebarThemeSwitch" title="Temayı Değiştir (Açık / Koyu)">
+      <div class="daynight-switch-track">
+        <!-- Day Sky Elements (Clouds) -->
+        <div class="sky-clouds">
+          <span class="sky-cloud cloud-lg"></span>
+          <span class="sky-cloud cloud-sm"></span>
+          <span class="sky-cloud cloud-xs"></span>
+        </div>
+        <!-- Night Sky Elements (Stars) -->
+        <div class="sky-stars">
+          <span class="sky-star star-1"></span>
+          <span class="sky-star star-2"></span>
+          <span class="sky-star star-3"></span>
+          <span class="sky-star star-4"></span>
+          <span class="sky-star star-5"></span>
+          <span class="sky-star star-6"></span>
+        </div>
+        <!-- Toggle Button (Sun & Moon) -->
+        <div class="daynight-thumb">
+          <div class="moon-craters">
+            <span class="crater crater-1"></span>
+            <span class="crater crater-2"></span>
+            <span class="crater crater-3"></span>
+          </div>
+        </div>
+      </div>
+      <span class="daynight-label" id="sidebarThemeLabel">Koyu Mod</span>
+    </div>
+  </div>
+</aside>

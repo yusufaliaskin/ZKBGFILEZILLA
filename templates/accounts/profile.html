@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Kullanıcı Profili &amp; Ayarlar | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/devices.css' %}">
+<style>
+  .profile-page-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .profile-hero-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 26px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .profile-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .profile-avatar-large {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    background-color: #FFFFFF;
+    border: 2px solid rgba(220, 38, 38, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.2);
+    overflow: hidden;
+  }
+
+  .profile-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .profile-hero-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.02em;
+  }
+
+  .profile-hero-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .profile-grid-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 900px) {
+    .profile-grid-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .profile-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .profile-card-header {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light, var(--border-color));
+  }
+
+  .info-kv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    font-size: 13px;
+  }
+
+  .info-kv-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .info-kv-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .info-kv-value {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .profile-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .profile-form-group label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .theme-option-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .theme-option-box:hover {
+    border-color: var(--accent-primary);
+    background-color: var(--bg-card-hover);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-page-container">
+
+  <!-- 1. Hero Identity Banner -->
+  <div class="profile-hero-card">
+    <div class="profile-hero-left">
+      <div class="profile-avatar-large">
+        <img src="{% static 'img/zk.png' %}" alt="User Avatar">
+      </div>
+      <div>
+        <div class="profile-hero-name">
+          <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+          <span class="badge badge-role" style="background: rgba(220, 38, 38, 0.1); color: #DC2626; border: 1px solid rgba(220, 38, 38, 0.25);">
+            {{ user_profile.get_role_display|default:"SİSTEM YÖNETİCİSİ" }}
+          </span>
+        </div>
+        <div class="profile-hero-sub">
+          <span>Kullanıcı Adı: <strong>{{ request.user.username }}</strong></span>
+          &bull;
+          <span>Sicil No: <strong style="font-family: var(--font-mono);">{{ user_profile.personnel_number|default:"55001" }}</strong></span>
+          &bull;
+          <span>Birim: <strong>{{ user_profile.department|default:"Bilgi Güvenliği SOC Operasyonları" }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <form method="post" action="{% url 'accounts:logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-sm" style="color: #DC2626; border-color: rgba(220, 38, 38, 0.3);">
+          <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
+          <span>Güvenli Çıkış Yap</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Top Summary Metric Cards -->
+  <div class="dash-metric-grid">
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">Hesap Yetki Seviyesi</div>
+      <div class="dash-metric-value" style="font-size: 22px; color: #DC2626;">{{ user_profile.get_role_display|default:"ROOT ADMIN" }}</div>
+      <div class="dash-metric-sub">Tam denetim ve terminal izni</div>
+    </div>
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">2FA Doğrulama</div>
+      <div class="dash-metric-value" style="font-size: 22px; color: var(--status-online);">AKTİF</div>
+      <div class="dash-metric-sub">Zorunlu SOC OTP koruması</div>
+    </div>
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">Son Giriş Zamanı</div>
+      <div class="dash-metric-value" style="font-size: 20px;">{{ request.user.last_login|date:"H:i - d.m"|default:"Şimdi" }}</div>
+      <div class="dash-metric-sub">IP: {{ user_profile.last_login_ip|default:"127.0.0.1" }}</div>
+    </div>
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">Audit İzleme</div>
+      <div class="dash-metric-value" style="font-size: 22px; color: var(--status-online);">100% CANLI</div>
+      <div class="dash-metric-sub">Tüm işlemler loglanmaktadır</div>
+    </div>
+  </div>
+
+  <!-- 3. Two Column Profile & Security Form Grid -->
+  <div class="profile-grid-layout">
+    <!-- Left: Identity Details & Preferences -->
+    <div class="profile-card">
+      <div class="profile-card-header">
+        <i data-lucide="user" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+        <span>Kullanıcı ve Hesap Bilgileri</span>
+      </div>
+
+      <div class="info-kv-grid">
+        <div class="info-kv-box">
+          <span class="info-kv-label">Kullanıcı Adı</span>
+          <span class="info-kv-value">{{ request.user.username }}</span>
+        </div>
+        <div class="info-kv-box">
+          <span class="info-kv-label">Sicil Numarası</span>
+          <span class="info-kv-value" style="font-family: var(--font-mono);">{{ user_profile.personnel_number|default:"55001" }}</span>
+        </div>
+        <div class="info-kv-box">
+          <span class="info-kv-label">E-Posta Adresi</span>
+          <span class="info-kv-value">{{ request.user.email|default:"admin@ziraatkatilim.com.tr" }}</span>
+        </div>
+        <div class="info-kv-box">
+          <span class="info-kv-label">Departman / Birim</span>
+          <span class="info-kv-value">{{ user_profile.department|default:"Bilgi Güvenliği Operasyonları" }}</span>
+        </div>
+        <div class="info-kv-box">
+          <span class="info-kv-label">Etki Alanı (Domain)</span>
+          <span class="info-kv-value">CORP.ZIRAATKATILIM.LOCAL</span>
+        </div>
+        <div class="info-kv-box">
+          <span class="info-kv-label">Hesap Oluşturulma</span>
+          <span class="info-kv-value">{{ request.user.date_joined|date:"d.m.Y" }}</span>
+        </div>
+      </div>
+
+      <!-- Appearance & Theme Switcher -->
+      <div style="margin-top: 10px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+        <div style="font-size: 13.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="palette" style="width: 15px; height: 15px; color: var(--accent-primary);"></i>
+          <span>Görünüm ve Tema Seçimi</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="theme-option-box" onclick="setTheme('light', true)">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="sun" style="width: 18px; height: 18px; color: #F59E0B;"></i>
+              <span style="font-size: 13px; font-weight: 600;">Açık Tema</span>
+            </div>
+            <i data-lucide="check" style="width: 14px; height: 14px; color: var(--accent-primary);"></i>
+          </div>
+
+          <div class="theme-option-box" onclick="setTheme('dark', true)">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="moon" style="width: 18px; height: 18px; color: #38BDF8;"></i>
+              <span style="font-size: 13px; font-weight: 600;">Koyu Tema</span>
+            </div>
+            <i data-lucide="check" style="width: 14px; height: 14px; color: var(--accent-primary);"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Password Change & Security Form -->
+    <div class="profile-card">
+      <div class="profile-card-header">
+        <i data-lucide="lock" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+        <span>Güvenlik ve Parola Değiştir</span>
+      </div>
+
+      <form method="POST" action="{% url 'accounts:profile' %}" style="display: flex; flex-direction: column; gap: 14px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="change_password">
+
+        <div class="profile-form-group">
+          <label>Mevcut Parola *</label>
+          <input type="password" name="old_password" class="form-input" placeholder="••••••••" required>
+        </div>
+
+        <div class="profile-form-group">
+          <label>Yeni Parola *</label>
+          <input type="password" name="new_password" class="form-input" placeholder="En az 6 karakter" required>
+        </div>
+
+        <div class="profile-form-group">
+          <label>Yeni Parola (Tekrar) *</label>
+          <input type="password" name="confirm_password" class="form-input" placeholder="••••••••" required>
+        </div>
+
+        <div style="padding: 12px 14px; background-color: var(--bg-secondary); border-radius: var(--radius-md); font-size: 12px; color: var(--text-muted); border: 1px solid var(--border-color); line-height: 1.5;">
+          <strong>Kurumsal Güvenlik Politikası:</strong> Parolanız en az 6 karakter uzunluğunda olmalı ve harf ile rakam kombinasyonu içermelidir.
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 4px;">
+          <i data-lucide="shield-check" style="width: 15px; height: 15px;"></i>
+          <span>Parolayı Güvenle Güncelle</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

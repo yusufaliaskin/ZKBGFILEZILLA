@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+{% load static tz %}
+
+{% block title %}SIEM Denetim &amp; Güvenlik Günlükleri | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =========================================================================
+     Sessions Authentic SIEM Audit Styles
+     ========================================================================= */
+  .audit-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .audit-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .audit-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    margin: 0;
+  }
+
+  .audit-sub {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Metric cards */
+  .audit-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 1100px) {
+    .audit-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .audit-kpi-grid { grid-template-columns: 1fr; }
+  }
+
+  .audit-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--card-radius, 10px);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .audit-kpi-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+
+  .audit-kpi-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .audit-kpi-val {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .audit-kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Filter Tabs Bar */
+  .audit-filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .audit-filter-chip {
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .audit-filter-chip:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover, rgba(0,0,0,0.04));
+  }
+
+  .audit-filter-chip.active {
+    background: var(--zk-red, #E30613) !important;
+    color: #FFFFFF !important;
+    border-color: var(--zk-red, #E30613) !important;
+    box-shadow: 0 1px 4px rgba(227, 6, 19, 0.3);
+  }
+
+  /* Table Card & Toolbar */
+  .audit-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--card-radius, 10px);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .audit-table-toolbar {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .audit-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 34px;
+    min-width: 260px;
+    flex: 1;
+    max-width: 420px;
+  }
+
+  .audit-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12px;
+    color: var(--text-primary);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .audit-select-filter {
+    height: 34px;
+    padding: 0 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* Table */
+  .audit-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .audit-data-table thead th {
+    background: var(--bg-surface);
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+  }
+
+  .audit-data-table tbody tr.audit-row {
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+
+  .audit-data-table tbody tr.audit-row:hover {
+    background: var(--sidebar-hover);
+  }
+
+  .audit-data-table tbody tr.audit-row.expanded {
+    background: var(--sidebar-hover);
+  }
+
+  .audit-data-table tbody td {
+    padding: 10px 14px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .audit-data-table tbody tr.audit-row.expanded .chevron-arrow {
+    transform: rotate(90deg);
+  }
+
+  .chevron-arrow {
+    transition: transform 0.15s ease;
+  }
+
+  /* Accordion Detail Box */
+  .audit-detail-row {
+    display: none;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .audit-row.expanded + .audit-detail-row {
+    display: table-row;
+  }
+
+  .audit-detail-content {
+    padding: 12px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    font-size: 11.5px;
+  }
+
+  .detail-field-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+  }
+
+  .detail-field-value {
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    word-break: break-all;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="audit-page-wrapper">
+  <!-- 1. Breadcrumb & Header Row -->
+  <div class="page-breadcrumb" style="margin-bottom: 4px;">
+    <a href="{% url 'dashboard:index' %}" class="breadcrumb-item">Ana Sayfa</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-active">SIEM Denetim &amp; Güvenlik Günlükleri</span>
+  </div>
+
+  <div class="audit-header-row">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(227,6,19,0.1);display:flex;align-items:center;justify-content:center;color:var(--zk-red, #E30613);">
+        <i data-lucide="shield-check" style="width:20px;height:20px;"></i>
+      </div>
+      <div>
+        <h1 class="audit-title">SIEM Denetim &amp; Güvenlik Telemetri Akışı</h1>
+        <p class="audit-sub">Değiştirilemez (Immutable) SFTP &amp; SSH İşlem Olay Günlükleri</p>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;">
+      <!-- Export Dropdown -->
+      <div class="custom-select-wrapper">
+        <button type="button" class="custom-select-trigger" onclick="toggleCustomDropdown('auditExportDropdown', event)" style="height:34px;padding:0 12px;" title="Dışa Aktar">
+          <i data-lucide="download" style="width:13px;height:13px;"></i>
+          <span>Denetim Raporu İndir</span>
+          <i data-lucide="chevron-down" style="width:11px;height:11px;"></i>
+        </button>
+        <div id="auditExportDropdown" class="custom-select-menu" style="min-width:200px;">
+          <a href="{% url 'audit:export_excel' %}" class="custom-option" style="text-decoration:none;" download>
+            <span>📊 Excel Tablosu (.xls)</span>
+          </a>
+          <a href="{% url 'audit:export_csv' %}" class="custom-option" style="text-decoration:none;" download>
+            <span>📑 CSV Formatı (.csv)</span>
+          </a>
+          <a href="{% url 'audit:export_pdf' %}" class="custom-option" target="_blank" style="text-decoration:none;">
+            <span>🖨️ Resmi Rapor / PDF Yazdır</span>
+          </a>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-sm" style="height:34px;" onclick="AuditManager.loadLogs()">
+        <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i>
+        <span>Canlı Akışı Yenile</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. 4 Clean Metric Cards -->
+  <div class="audit-kpi-grid">
+    <div class="audit-kpi-card animate-fade-in">
+      <div class="audit-kpi-label">Toplam Olay Kaydı</div>
+      <div class="audit-kpi-val" id="auditTotalVal">{{ total_logs|default:0 }}</div>
+      <div class="audit-kpi-sub">%100 SHA-256 Vault korumalı</div>
+    </div>
+    <div class="audit-kpi-card animate-fade-in">
+      <div class="audit-kpi-label">Başarılı İşlemler</div>
+      <div class="audit-kpi-val" id="auditSuccessVal" style="color:#10B981;">{{ success_logs|default:0 }}</div>
+      <div class="audit-kpi-sub">Doğrulanmış güvenli oturumlar</div>
+    </div>
+    <div class="audit-kpi-card animate-fade-in">
+      <div class="audit-kpi-label">Başarısız / Uyarılar</div>
+      <div class="audit-kpi-val" id="auditFailureVal" style="color:{% if failure_logs > 0 %}var(--zk-red, #E30613){% else %}var(--text-muted){% endif %};">{{ failure_logs|default:0 }}</div>
+      <div class="audit-kpi-sub">Engellenen veya hatalı işlemler</div>
+    </div>
+    <div class="audit-kpi-card animate-fade-in">
+      <div class="audit-kpi-label">Bütünlük Sağlama</div>
+      <div class="audit-kpi-val" style="font-size:16px;color:var(--zk-red, #E30613);font-family:var(--font-mono);margin-top:2px;">IMMUTABLE VAULT</div>
+      <div class="audit-kpi-sub">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10B981;box-shadow:0 0 5px #10B981;margin-right:4px;"></span>Canlı SOC Akışı
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Filter Tabs -->
+  <div class="audit-filter-tabs">
+    <button type="button" class="audit-filter-chip active" onclick="AuditManager.setCategoryFilter('', this)">Tüm Olaylar</button>
+    <button type="button" class="audit-filter-chip" onclick="AuditManager.setCategoryFilter('FILE', this)">📁 Dosya &amp; SFTP</button>
+    <button type="button" class="audit-filter-chip" onclick="AuditManager.setCategoryFilter('TERMINAL', this)">💻 SSH &amp; Terminal</button>
+    <button type="button" class="audit-filter-chip" onclick="AuditManager.setCategoryFilter('AUTH', this)">🔒 Giriş &amp; Oturum</button>
+  </div>
+
+  <!-- 4. Table & Filter Toolbar Container -->
+  <div class="audit-table-card">
+    <div class="audit-table-toolbar">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;">
+        <div class="audit-search-box">
+          <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+          <input type="text" id="audit-search-input" class="audit-search-input" placeholder="Sicil, kullanıcı, IP, işlem veya hedef yol ara...">
+        </div>
+
+        <select id="audit-op-filter" class="audit-select-filter">
+          <option value="">Tüm İşlem Kodları</option>
+          {% for op_val, op_label in operations %}
+            <option value="{{ op_val }}">{{ op_label }}</option>
+          {% endfor %}
+        </select>
+
+        <select id="audit-status-filter" class="audit-select-filter">
+          <option value="">Tüm Durumlar</option>
+          <option value="SUCCESS">Başarılı</option>
+          <option value="FAILURE">Başarısız</option>
+          <option value="DENIED">Erişim Reddedildi</option>
+        </select>
+      </div>
+
+      <button class="btn btn-secondary btn-sm" onclick="AuditManager.loadLogs()" title="Yenile">
+        <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i>
+        <span>Yenile</span>
+      </button>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="audit-data-table">
+        <thead>
+          <tr>
+            <th style="width: 32px; text-align: center;"></th>
+            <th style="width: 145px;">Zaman Damgası</th>
+            <th style="width: 110px;">Kullanıcı</th>
+            <th style="width: 130px;">Hedef Düğüm</th>
+            <th style="width: 140px;">İşlem Türü</th>
+            <th>Hedef Yol / Komut</th>
+            <th style="width: 100px; text-align: center;">Durum</th>
+            <th style="width: 120px; text-align: right; padding-right: 18px;">İstemci IP</th>
+          </tr>
+        </thead>
+        <tbody id="audit-table-body">
+          <!-- Populated dynamically via audit.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/modules/audit.js' %}?v={% now 'U' %}"></script>
+<script>
+  function toggleCustomDropdown(menuId, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    var menu = document.getElementById(menuId);
+    if (!menu) return;
+    var isOpen = menu.classList.contains("show");
+    document.querySelectorAll(".custom-select-menu").forEach(function (el) {
+      el.classList.remove("show");
+    });
+    if (!isOpen) menu.classList.add("show");
+  }
+
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".custom-select-wrapper")) {
+      document.querySelectorAll(".custom-select-menu").forEach(function (el) {
+        el.classList.remove("show");
+      });
+    }
+  });
+</script>
+{% endblock %}

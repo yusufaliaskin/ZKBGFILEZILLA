@@ -1,0 +1,1020 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Kullanıcı &amp; Sistem Yönetim Merkezi | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<style>
+  .manage-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .manage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .manage-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 1100px) {
+    .manage-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .manage-kpi-grid { grid-template-columns: 1fr; }
+  }
+
+  .manage-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--card-radius, 12px);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .manage-nav-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--bg-card);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border-default);
+    overflow-x: auto;
+  }
+
+  .manage-tab-btn {
+    padding: 8px 16px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+  }
+
+  .manage-tab-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-surface);
+  }
+
+  .manage-tab-btn.active {
+    background: var(--zk-red, #E30613);
+    color: #fff;
+    box-shadow: 0 2px 8px var(--zk-red-glow, rgba(227, 6, 19, 0.35));
+  }
+
+  .manage-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--card-radius, 12px);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .manage-toolbar {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .manage-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 0 12px;
+    height: 36px;
+    width: 280px;
+  }
+
+  .manage-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    width: 100%;
+    font-family: inherit;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="manage-container">
+  <!-- Breadcrumb -->
+  <div class="page-breadcrumb">
+    <a href="{% url 'dashboard:index' %}" class="breadcrumb-item">Ana Sayfa</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-active">Kullanıcı &amp; Sistem Yönetim Merkezi</span>
+  </div>
+
+  <!-- Header -->
+  <div class="manage-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:42px;height:42px;border-radius:10px;background:rgba(227,6,19,0.1);display:flex;align-items:center;justify-content:center;color:var(--zk-red, #E30613);">
+        <i data-lucide="shield" style="width:22px;height:22px;"></i>
+      </div>
+      <div>
+        <h1 style="font-size:18px;font-weight:800;color:var(--text-primary);margin:0;">Kullanıcı &amp; Sistem Yönetim Merkezi</h1>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Kullanıcı yetkileri, dondurma, departman yönetimi ve ağ port yapılandırması</p>
+      </div>
+    </div>
+
+    <!-- Tab Buttons -->
+    <div class="manage-nav-tabs">
+      <button type="button" class="manage-tab-btn active" onclick="switchManageTab('users', this)">
+        <i data-lucide="users" style="width:14px;height:14px;"></i>
+        <span>Kullanıcı Yönetimi</span>
+      </button>
+      <button type="button" class="manage-tab-btn" onclick="switchManageTab('departments', this)">
+        <i data-lucide="building" style="width:14px;height:14px;"></i>
+        <span>Departmanlar</span>
+      </button>
+      <button type="button" class="manage-tab-btn" onclick="switchManageTab('ports', this)">
+        <i data-lucide="network" style="width:14px;height:14px;"></i>
+        <span>Port Yapılandırması</span>
+      </button>
+      <button type="button" class="manage-tab-btn" onclick="switchManageTab('roles', this)">
+        <i data-lucide="key" style="width:14px;height:14px;"></i>
+        <span>Yetki &amp; Roller</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Metrics -->
+  <div class="manage-kpi-grid">
+    <div class="manage-kpi-card animate-fade-in">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);">Toplam Kayıtlı Kullanıcı</div>
+      <div style="font-size:26px;font-weight:800;color:var(--text-primary);" id="totalUsersCount">{{ total_users }}</div>
+      <div style="font-size:11px;color:var(--text-muted);">Ziraat Katılım personeli</div>
+    </div>
+
+    <div class="manage-kpi-card animate-fade-in">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);">Aktif Operatörler</div>
+      <div style="font-size:26px;font-weight:800;color:#10B981;" id="activeUsersCount">{{ active_users }}</div>
+      <div style="font-size:11px;color:var(--text-muted);">Sisteme erişimi açık</div>
+    </div>
+
+    <div class="manage-kpi-card animate-fade-in">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);">Dondurulmuş Hesaplar</div>
+      <div style="font-size:26px;font-weight:800;color:var(--zk-red, #E30613);" id="frozenUsersCount">{{ frozen_users }}</div>
+      <div style="font-size:11px;color:var(--text-muted);">Oturumu kilitli</div>
+    </div>
+
+    <div class="manage-kpi-card animate-fade-in">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);">Sistem Yöneticileri</div>
+      <div style="font-size:26px;font-weight:800;color:#38BDF8;">{{ admin_users }}</div>
+      <div style="font-size:11px;color:var(--text-muted);">Tam yetkili Admin</div>
+    </div>
+  </div>
+
+  <!-- TAB 1: User Management Table -->
+  <div id="manage-tab-users" class="manage-card animate-fade-in">
+    <div class="manage-toolbar">
+      <div class="manage-search-box">
+        <i data-lucide="search" style="width:15px;height:15px;color:var(--text-muted);"></i>
+        <input type="text" id="userSearchInput" class="manage-search-input" placeholder="Kullanıcı, Sicil veya Ad ara..." oninput="filterUserTable(this.value)">
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="Modal.open('add-user-modal')">
+        <i data-lucide="user-plus" style="width:14px;height:14px;"></i>
+        <span>Yeni Kullanıcı Ekle</span>
+      </button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="data-table" style="width:100%;">
+        <thead>
+          <tr>
+            <th>Durum</th>
+            <th>Sicil No</th>
+            <th>Kullanıcı / E-Posta</th>
+            <th>Ad Soyad</th>
+            <th>Departman</th>
+            <th>Yetki / Rol</th>
+            <th style="text-align:right;padding-right:20px;">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          {% for u in users %}
+          <tr id="user-row-{{ u.id }}" data-search="{{ u.username }} {{ u.get_full_name }} {{ u.profile.personnel_number }} {{ u.profile.department }}">
+            <td>
+              {% if u.is_active %}
+                <span class="badge green" id="user-badge-{{ u.id }}" style="font-size:9.5px;padding:2px 7px;">AKTİF</span>
+              {% else %}
+                <span class="badge gray" id="user-badge-{{ u.id }}" style="font-size:9.5px;padding:2px 7px;background:rgba(227,6,19,0.1);color:var(--zk-red, #E30613);">DONDURULDU</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge purple mono" style="font-size:11px;">{{ u.profile.personnel_number|default:'-' }}</span>
+            </td>
+            <td>
+              <div style="font-weight:700;color:var(--text-primary);font-size:13px;">{{ u.username }}</div>
+              <div style="font-size:11px;color:var(--text-muted);">{{ u.email|default:'E-posta yok' }}</div>
+            </td>
+            <td>
+              <div style="font-weight:600;color:var(--text-primary);font-size:12.5px;">{{ u.get_full_name|default:'-' }}</div>
+            </td>
+            <td>
+              <span style="font-size:12px;color:var(--text-secondary);">{{ u.profile.department|default:'Bilgi Güvenliği' }}</span>
+            </td>
+            <td>
+              <span class="badge {% if u.profile.role == 'ADMIN' or u.is_superuser %}red{% elif u.profile.role == 'OPERATOR' %}blue{% elif u.profile.role == 'AUDITOR' %}orange{% else %}gray{% endif %}" style="font-size:10px;font-weight:700;">
+                {{ u.profile.get_role_display|default:'Operatör' }}
+              </span>
+            </td>
+            <td style="text-align:right;padding-right:20px;">
+              <div style="display:inline-flex;align-items:center;gap:6px;">
+                <!-- Edit Button -->
+                <button type="button" class="btn btn-secondary btn-sm" onclick='openEditUserModal({{ u.id }}, "{{ u.username|escapejs }}", "{{ u.profile.personnel_number|default:""|escapejs }}", "{{ u.first_name|default:""|escapejs }}", "{{ u.last_name|default:""|escapejs }}", "{{ u.email|default:""|escapejs }}", "{{ u.profile.department|default:""|escapejs }}", "{{ u.profile.role|default:"OPERATOR"|escapejs }}")' title="Kullanıcıyı Düzenle" style="padding:2px 8px;font-size:11px;height:28px;color:#38BDF8;">
+                  <i data-lucide="edit-3" style="width:12px;height:12px;"></i>
+                  <span>Düzenle</span>
+                </button>
+
+                <!-- Freeze / Activate Button -->
+                {% if u != request.user %}
+                <button type="button" class="btn btn-secondary btn-sm" id="freeze-btn-{{ u.id }}" onclick="toggleUserFreeze({{ u.id }}, '{{ u.username|escapejs }}')" title="{% if u.is_active %}Kullanıcıyı Dondur{% else %}Hesabı Aktif Et{% endif %}" style="padding:2px 8px;font-size:11px;height:28px;">
+                  <i data-lucide="{% if u.is_active %}snowflake{% else %}check-circle{% endif %}" style="width:12px;height:12px;"></i>
+                  <span>{% if u.is_active %}Dondur{% else %}Aktif Et{% endif %}</span>
+                </button>
+
+                <!-- Delete Button -->
+                <button type="button" class="btn btn-secondary btn-sm" onclick="deleteUserAccount({{ u.id }}, '{{ u.username|escapejs }}')" title="Kullanıcıyı Kalıcı Olarak Sil" style="padding:2px 8px;font-size:11px;height:28px;color:var(--zk-red, #E30613);">
+                  <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+                </button>
+                {% else %}
+                <span class="badge gray" style="font-size:9.5px;">(Mevcut Oturum)</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: Departments -->
+  <div id="manage-tab-departments" class="manage-card animate-fade-in" style="display:none;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h3 style="font-size:15px;font-weight:800;color:var(--text-primary);margin:0;">Ziraat Katılım Departmanları</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Sistemde kayıtlı kurumsal birimler ve departman tanımları</p>
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="Modal.open('add-department-modal')">
+        <i data-lucide="plus" style="width:14px;height:14px;"></i>
+        <span>Yeni Departman Ekle</span>
+      </button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;" id="departmentGrid">
+      {% for dept in departments %}
+      <div id="dept-card-{{ dept.id }}" style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:8px;background:rgba(227,6,19,0.1);display:flex;align-items:center;justify-content:center;color:var(--zk-red, #E30613);flex-shrink:0;">
+          <i data-lucide="building-2" style="width:18px;height:18px;"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ dept.name }}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Kod: <span class="mono" style="color:var(--text-primary);font-weight:600;">{{ dept.code|default:'--' }}</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openEditDepartmentModal({{ dept.id }}, '{{ dept.name|escapejs }}', '{{ dept.code|escapejs }}', '{{ dept.description|escapejs }}')" title="Departmanı Düzenle" style="color:#38BDF8;height:28px;padding:0 8px;">
+            <i data-lucide="edit-3" style="width:12px;height:12px;"></i>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="deleteDepartment({{ dept.id }}, '{{ dept.name|escapejs }}')" title="Departmanı Sil" style="color:var(--zk-red, #E30613);height:28px;padding:0 8px;">
+            <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+          </button>
+        </div>
+      </div>
+      {% empty %}
+      <div style="grid-column: 1 / -1; padding: 36px 16px; text-align: center; color: var(--text-muted); background: var(--bg-surface); border-radius: 10px; border: 1px dashed var(--border-default);">
+        <i data-lucide="building" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.6;"></i>
+        <div style="font-weight: 700; color: var(--text-primary); font-size: 14px;">Tanımlı Departman Bulunmuyor</div>
+        <div style="font-size: 12px; margin-top: 2px; margin-bottom: 12px;">Kullanıcıları birimlere atamak için yeni bir departman ekleyin.</div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="Modal.open('add-department-modal')">+ Departman Tanımla</button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- TAB 3: Port Configuration -->
+  <div id="manage-tab-ports" class="manage-card animate-fade-in" style="display:none;padding:24px;">
+    <div style="margin-bottom:18px;">
+      <h3 style="font-size:15px;font-weight:800;color:var(--text-primary);margin:0;">Merkezi Port &amp; Güvenlik Duvarı Yapılandırması</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Uzaktan yönetim protokolleri ve varsayılan TCP dinleme kuralları</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;color:#10B981;">
+            <i data-lucide="terminal" style="width:18px;height:18px;"></i>
+          </div>
+          <div>
+            <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);">SSH (Secure Shell) &bull; SFTP</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">Pardus / GNU Linux güvenli terminal ve dosya transferi</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge green mono" style="font-size:12px;font-weight:700;">TCP Port: 22</span>
+          <span class="badge green" style="font-size:9.5px;">İZİN VERİLDİ</span>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(56,189,248,0.1);display:flex;align-items:center;justify-content:center;color:#38BDF8;">
+            <i data-lucide="monitor" style="width:18px;height:18px;"></i>
+          </div>
+          <div>
+            <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);">RDP (Remote Desktop Protocol)</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">Microsoft Windows uç noktaları grafik masaüstü oturumu</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge blue mono" style="font-size:12px;font-weight:700;">TCP Port: 3389</span>
+          <span class="badge blue" style="font-size:9.5px;">İZİN VERİLDİ</span>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;color:#F59E0B;">
+            <i data-lucide="cpu" style="width:18px;height:18px;"></i>
+          </div>
+          <div>
+            <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);">WinRM (Windows Remote Management - HTTPS)</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">PowerShell uzaktan komut çalıştırma ve telemetri</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge orange mono" style="font-size:12px;font-weight:700;">TCP Port: 5986</span>
+          <span class="badge green" style="font-size:9.5px;">SSL ŞİFRELİ</span>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;color:#EF4444;">
+            <i data-lucide="shield-x" style="width:18px;height:18px;"></i>
+          </div>
+          <div>
+            <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);">Güvensiz Protokoller (Telnet, HTTP, Düz Metin FTP)</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">Şifresiz veri aktarımına karşı otomatik bloklama</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge red mono" style="font-size:12px;font-weight:700;">Port: 21 / 23</span>
+          <span class="badge red" style="font-size:9.5px;">ENGELLENDİ</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Role & Permission Matrix -->
+  <div id="manage-tab-roles" class="manage-card animate-fade-in" style="display:none;padding:24px;">
+    <div style="margin-bottom:18px;">
+      <h3 style="font-size:15px;font-weight:800;color:var(--text-primary);margin:0;">RBAC Yetki &amp; Rol Dağılım Matrisi</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Kullanıcı rollerine göre izin verilen SOC operasyonları</p>
+    </div>
+
+    <table class="data-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>Sistem Rolü</th>
+          <th>Terminal Erişimi</th>
+          <th>Dosya İndirme/Yükleme</th>
+          <th>Düğüm Ekle/Sil</th>
+          <th>Kullanıcı Yönetimi</th>
+          <th>Denetim Logları</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--zk-red, #E30613);">Sistem Yöneticisi (Admin)</strong></td>
+          <td><span class="badge green">Tam Yetki</span></td>
+          <td><span class="badge green">Tam Yetki</span></td>
+          <td><span class="badge green">Evet</span></td>
+          <td><span class="badge green">Evet</span></td>
+          <td><span class="badge green">Tam İnceleme</span></td>
+        </tr>
+        <tr>
+          <td><strong style="color:#38BDF8;">Operatör (Operator)</strong></td>
+          <td><span class="badge green">Tam Yetki</span></td>
+          <td><span class="badge green">Tam Yetki</span></td>
+          <td><span class="badge gray">Kısıtlı</span></td>
+          <td><span class="badge red">Hayır</span></td>
+          <td><span class="badge blue">Kendi Logları</span></td>
+        </tr>
+        <tr>
+          <td><strong style="color:#F59E0B;">Denetçi (Auditor)</strong></td>
+          <td><span class="badge red">Yok</span></td>
+          <td><span class="badge gray">Salt Okunur</span></td>
+          <td><span class="badge red">Hayır</span></td>
+          <td><span class="badge red">Hayır</span></td>
+          <td><span class="badge green">Tam İnceleme &amp; Export</span></td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-muted);">Salt Okunur (Read Only)</strong></td>
+          <td><span class="badge red">Yok</span></td>
+          <td><span class="badge gray">Salt Okunur</span></td>
+          <td><span class="badge red">Hayır</span></td>
+          <td><span class="badge red">Hayır</span></td>
+          <td><span class="badge gray">Yok</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Add User Modal -->
+<div id="add-user-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 550px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg);">
+    <div class="modal-header" style="padding: 16px 22px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(227, 6, 19, 0.12); color: var(--zk-red, #E30613); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+          <i data-lucide="user-plus" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0;">Yeni Kullanıcı Tanımla</h3>
+          <span style="font-size: 12px; color: var(--text-muted);">Ziraat Katılım personeline sistem erişimi tanımlayın</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('add-user-modal')" title="Kapat">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="addUserForm" onsubmit="handleCreateUser(event)">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; background: var(--bg-surface);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Kullanıcı Adı *</label>
+            <input type="text" id="new_username" class="form-input" placeholder="Örn: ahmet.yilmaz" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Sicil Numarası *</label>
+            <input type="text" id="new_sicil" class="form-input" placeholder="Örn: SICIL-9042" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Ad</label>
+            <input type="text" id="new_firstname" class="form-input" placeholder="Ahmet">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Soyad</label>
+            <input type="text" id="new_lastname" class="form-input" placeholder="Yılmaz">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">E-Posta Adresi</label>
+            <input type="email" id="new_email" class="form-input" placeholder="ahmet.yilmaz@ziraatkatilim.com.tr">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Departman / Birim</label>
+            <select id="new_department" class="form-input" style="height:36px;">
+              <option value="">Departman Seçiniz (Opsiyonel)</option>
+              {% for dept in departments %}
+                <option value="{{ dept.name }}">{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Yetki / Rol *</label>
+            <select id="new_role" class="form-input" style="height:36px;">
+              <option value="OPERATOR" selected>Operatör</option>
+              <option value="ADMIN">Sistem Yöneticisi (Admin)</option>
+              <option value="AUDITOR">Denetçi (Auditor)</option>
+              <option value="READ_ONLY">Salt Okunur (Read Only)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">İlk Giriş Parolası *</label>
+            <input type="password" id="new_password" class="form-input" placeholder="••••••••" required minlength="6">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 22px; display: flex; justify-content: flex-end; gap: 8px; background: var(--bg-card); border-top: 1px solid var(--border-default);">
+        <button type="button" class="btn btn-secondary" onclick="Modal.close('add-user-modal')">İptal</button>
+        <button type="submit" id="addUserSubmitBtn" class="btn btn-primary" style="padding:0 18px;">
+          <i data-lucide="check" style="width:14px;height:14px;"></i>
+          <span>Kullanıcıyı Oluştur</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="edit-user-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 550px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg);">
+    <div class="modal-header" style="padding: 16px 22px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(56, 189, 248, 0.12); color: #38BDF8; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+          <i data-lucide="edit-3" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0;">Kullanıcıyı Düzenle</h3>
+          <span style="font-size: 12px; color: var(--text-muted);" id="edit-user-subtitle">Kullanıcı profil ve yetki ayarlarını güncelleyin</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('edit-user-modal')" title="Kapat">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="editUserForm" onsubmit="handleUpdateUser(event)">
+      <input type="hidden" id="edit_user_id">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; background: var(--bg-surface);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Kullanıcı Adı *</label>
+            <input type="text" id="edit_username" class="form-input" placeholder="ahmet.yilmaz" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Sicil Numarası</label>
+            <input type="text" id="edit_sicil" class="form-input" placeholder="Örn: SICIL-9042">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Ad</label>
+            <input type="text" id="edit_firstname" class="form-input" placeholder="Ahmet">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Soyad</label>
+            <input type="text" id="edit_lastname" class="form-input" placeholder="Yılmaz">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">E-Posta Adresi</label>
+            <input type="email" id="edit_email" class="form-input" placeholder="ahmet.yilmaz@ziraatkatilim.com.tr">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Departman / Birim</label>
+            <select id="edit_department" class="form-input" style="height:36px;">
+              <option value="">Departman Seçiniz (Opsiyonel)</option>
+              {% for dept in departments %}
+                <option value="{{ dept.name }}">{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Yetki / Rol *</label>
+            <select id="edit_role" class="form-input" style="height:36px;">
+              <option value="OPERATOR">Operatör</option>
+              <option value="ADMIN">Sistem Yöneticisi (Admin)</option>
+              <option value="AUDITOR">Denetçi (Auditor)</option>
+              <option value="READ_ONLY">Salt Okunur (Read Only)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Yeni Parola (İsteğe Bağlı)</label>
+            <input type="password" id="edit_password" class="form-input" placeholder="Değiştirmemek için boş bırakın">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 22px; display: flex; justify-content: flex-end; gap: 8px; background: var(--bg-card); border-top: 1px solid var(--border-default);">
+        <button type="button" class="btn btn-secondary" onclick="Modal.close('edit-user-modal')">İptal</button>
+        <button type="submit" id="editUserSubmitBtn" class="btn btn-primary" style="padding:0 18px;">
+          <i data-lucide="save" style="width:14px;height:14px;"></i>
+          <span>Değişiklikleri Kaydet</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Department Modal -->
+<div id="add-department-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 480px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg);">
+    <div class="modal-header" style="padding: 16px 22px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(227, 6, 19, 0.12); color: var(--zk-red, #E30613); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+          <i data-lucide="building-2" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0;">Yeni Departman Tanımla</h3>
+          <span style="font-size: 12px; color: var(--text-muted);">Ziraat Katılım kurumsal birim ekleyin</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('add-department-modal')" title="Kapat">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="addDepartmentForm" onsubmit="handleCreateDepartment(event)">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; background: var(--bg-surface);">
+        <div class="form-group">
+          <label class="form-label" style="font-size: 12px; font-weight: 600;">Departman / Birim Adı *</label>
+          <input type="text" id="dept_name" class="form-input" placeholder="Örn: Bilgi Güvenliği Operasyonları" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 12px; font-weight: 600;">Birim Kodu (Opsiyonel)</label>
+          <input type="text" id="dept_code" class="form-input" placeholder="Örn: BG, SY, AO">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 12px; font-weight: 600;">Açıklama</label>
+          <textarea id="dept_desc" class="form-input" style="height: 60px; padding: 8px 12px; resize: none;" placeholder="Departman görev alanı..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 22px; display: flex; justify-content: flex-end; gap: 8px; background: var(--bg-card); border-top: 1px solid var(--border-default);">
+        <button type="button" class="btn btn-secondary" onclick="Modal.close('add-department-modal')">İptal</button>
+        <button type="submit" id="addDeptSubmitBtn" class="btn btn-primary" style="padding:0 18px;">
+          <i data-lucide="check" style="width:14px;height:14px;"></i>
+          <span>Departmanı Kaydet</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Department Modal -->
+<div id="edit-department-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 480px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg);">
+    <div class="modal-header" style="padding: 16px 22px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(56, 189, 248, 0.12); color: #38BDF8; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+          <i data-lucide="edit-3" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0;">Departmanı Düzenle</h3>
+          <span style="font-size: 12px; color: var(--text-muted);" id="edit-dept-subtitle">Birim bilgilerini güncelleyin</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('edit-department-modal')" title="Kapat">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="editDepartmentForm" onsubmit="handleUpdateDepartment(event)">
+      <input type="hidden" id="edit_dept_id">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; background: var(--bg-surface);">
+        <div class="form-group">
+          <label class="form-label" style="font-size: 12px; font-weight: 600;">Departman / Birim Adı *</label>
+          <input type="text" id="edit_dept_name" class="form-input" placeholder="Örn: Bilgi Güvenliği Operasyonları" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 12px; font-weight: 600;">Birim Kodu (Opsiyonel)</label>
+          <input type="text" id="edit_dept_code" class="form-input" placeholder="Örn: BG, SY, AO">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 12px; font-weight: 600;">Açıklama</label>
+          <textarea id="edit_dept_desc" class="form-input" style="height: 60px; padding: 8px 12px; resize: none;" placeholder="Departman görev alanı..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 22px; display: flex; justify-content: flex-end; gap: 8px; background: var(--bg-card); border-top: 1px solid var(--border-default);">
+        <button type="button" class="btn btn-secondary" onclick="Modal.close('edit-department-modal')">İptal</button>
+        <button type="submit" id="editDeptSubmitBtn" class="btn btn-primary" style="padding:0 18px;">
+          <i data-lucide="save" style="width:14px;height:14px;"></i>
+          <span>Değişiklikleri Kaydet</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function switchManageTab(tabId, btn) {
+    document.querySelectorAll('.manage-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    ['manage-tab-users', 'manage-tab-departments', 'manage-tab-ports', 'manage-tab-roles'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    const activeEl = document.getElementById('manage-tab-' + tabId);
+    if (activeEl) {
+      activeEl.style.display = 'block';
+    }
+  }
+
+  function filterUserTable(query) {
+    const q = (query || '').toLowerCase();
+    document.querySelectorAll('#userTableBody tr').forEach(row => {
+      const searchTxt = (row.getAttribute('data-search') || '').toLowerCase();
+      row.style.display = searchTxt.includes(q) ? '' : 'none';
+    });
+  }
+
+  function openEditUserModal(id, username, sicil, first, last, email, dept, role) {
+    document.getElementById('edit_user_id').value = id;
+    document.getElementById('edit_username').value = username;
+    document.getElementById('edit_sicil').value = sicil || '';
+    document.getElementById('edit_firstname').value = first || '';
+    document.getElementById('edit_lastname').value = last || '';
+    document.getElementById('edit_email').value = email || '';
+    document.getElementById('edit_department').value = dept || '';
+    document.getElementById('edit_role').value = role || 'OPERATOR';
+    document.getElementById('edit_password').value = '';
+    document.getElementById('edit-user-subtitle').textContent = `'${username}' kullanıcısı ayarları`;
+    Modal.open('edit-user-modal');
+  }
+
+  async function handleUpdateUser(e) {
+    e.preventDefault();
+    const btn = document.getElementById('editUserSubmitBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    const userId = document.getElementById('edit_user_id').value;
+
+    const payload = {
+      username: document.getElementById('edit_username').value.trim(),
+      personnel_number: document.getElementById('edit_sicil').value.trim(),
+      first_name: document.getElementById('edit_firstname').value.trim(),
+      last_name: document.getElementById('edit_lastname').value.trim(),
+      email: document.getElementById('edit_email').value.trim(),
+      department: document.getElementById('edit_department').value.trim(),
+      role: document.getElementById('edit_role').value,
+      password: document.getElementById('edit_password').value
+    };
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = 'Kaydediliyor...';
+    }
+
+    try {
+      const res = await API.post(`/api/manage/users/${userId}/update/`, payload);
+      if (res.success) {
+        Toast.success(res.message);
+        Modal.close('edit-user-modal');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        Toast.error(res.message || 'Güncellenemedi.');
+      }
+    } catch (err) {
+      Toast.error(`Hata: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }
+  }
+
+  function openEditDepartmentModal(id, name, code, desc) {
+    document.getElementById('edit_dept_id').value = id;
+    document.getElementById('edit_dept_name').value = name;
+    document.getElementById('edit_dept_code').value = code || '';
+    document.getElementById('edit_dept_desc').value = desc || '';
+    document.getElementById('edit-dept-subtitle').textContent = `'${name}' birimi ayarları`;
+    Modal.open('edit-department-modal');
+  }
+
+  async function handleUpdateDepartment(e) {
+    e.preventDefault();
+    const btn = document.getElementById('editDeptSubmitBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    const deptId = document.getElementById('edit_dept_id').value;
+
+    const payload = {
+      name: document.getElementById('edit_dept_name').value.trim(),
+      code: document.getElementById('edit_dept_code').value.trim(),
+      description: document.getElementById('edit_dept_desc').value.trim()
+    };
+
+    if (!payload.name) {
+      Toast.error('Departman adı zorunludur.');
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = 'Kaydediliyor...';
+    }
+
+    try {
+      const res = await API.post(`/api/manage/departments/${deptId}/update/`, payload);
+      if (res.success) {
+        Toast.success(res.message);
+        Modal.close('edit-department-modal');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        Toast.error(res.message || 'Departman güncellenemedi.');
+      }
+    } catch (err) {
+      Toast.error(`Hata: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }
+  }
+
+  async function toggleUserFreeze(userId, username) {
+    try {
+      const res = await API.post(`/api/manage/users/${userId}/toggle-freeze/`, {});
+      if (res.success) {
+        Toast.success(res.message);
+        const badge = document.getElementById(`user-badge-${userId}`);
+        const btn = document.getElementById(`freeze-btn-${userId}`);
+        if (res.is_active) {
+          if (badge) {
+            badge.className = 'badge green';
+            badge.style.background = '';
+            badge.style.color = '';
+            badge.textContent = 'AKTİF';
+          }
+          if (btn) {
+            btn.innerHTML = `<i data-lucide="snowflake" style="width:12px;height:12px;"></i> <span>Dondur</span>`;
+          }
+        } else {
+          if (badge) {
+            badge.className = 'badge gray';
+            badge.style.background = 'rgba(227,6,19,0.1)';
+            badge.style.color = 'var(--zk-red, #E30613)';
+            badge.textContent = 'DONDURULDU';
+          }
+          if (btn) {
+            btn.innerHTML = `<i data-lucide="check-circle" style="width:12px;height:12px;"></i> <span>Aktif Et</span>`;
+          }
+        }
+        if (window.lucide) window.lucide.createIcons();
+      } else {
+        Toast.error(res.message || 'İşlem başarısız.');
+      }
+    } catch (err) {
+      Toast.error(`Hata: ${err.message}`);
+    }
+  }
+
+  function deleteUserAccount(userId, username) {
+    Modal.confirm({
+      title: 'Kullanıcıyı Sil',
+      message: `'${username}' adlı kullanıcıyı sistemden kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+      confirmText: 'Evet, Sil',
+      confirmClass: 'btn-danger',
+      onConfirm: async () => {
+        try {
+          const res = await API.post(`/api/manage/users/${userId}/delete/`, {});
+          if (res.success) {
+            Toast.success(res.message);
+            const row = document.getElementById(`user-row-${userId}`);
+            if (row) row.remove();
+          } else {
+            Toast.error(res.message || 'Silinemedi.');
+          }
+        } catch (err) {
+          Toast.error(`Silme hatası: ${err.message}`);
+        }
+      }
+    });
+  }
+
+  async function handleCreateUser(e) {
+    e.preventDefault();
+    const btn = document.getElementById('addUserSubmitBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+
+    const payload = {
+      username: document.getElementById('new_username').value.trim(),
+      personnel_number: document.getElementById('new_sicil').value.trim(),
+      first_name: document.getElementById('new_firstname').value.trim(),
+      last_name: document.getElementById('new_lastname').value.trim(),
+      email: document.getElementById('new_email').value.trim(),
+      department: document.getElementById('new_department').value.trim(),
+      role: document.getElementById('new_role').value,
+      password: document.getElementById('new_password').value
+    };
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = 'Kaydediliyor...';
+    }
+
+    try {
+      const res = await API.post('/api/manage/users/create/', payload);
+      if (res.success) {
+        Toast.success(res.message);
+        Modal.close('add-user-modal');
+        document.getElementById('addUserForm').reset();
+        setTimeout(() => location.reload(), 800);
+      } else {
+        Toast.error(res.message || 'Kullanıcı eklenemedi.');
+      }
+    } catch (err) {
+      Toast.error(`Hata: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }
+  }
+
+  async function handleCreateDepartment(e) {
+    e.preventDefault();
+    const btn = document.getElementById('addDeptSubmitBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+
+    const payload = {
+      name: document.getElementById('dept_name').value.trim(),
+      code: document.getElementById('dept_code').value.trim(),
+      description: document.getElementById('dept_desc').value.trim()
+    };
+
+    if (!payload.name) {
+      Toast.error('Departman adı zorunludur.');
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = 'Kaydediliyor...';
+    }
+
+    try {
+      const res = await API.post('/api/manage/departments/create/', payload);
+      if (res.success) {
+        Toast.success(res.message);
+        Modal.close('add-department-modal');
+        document.getElementById('addDepartmentForm').reset();
+        setTimeout(() => location.reload(), 800);
+      } else {
+        Toast.error(res.message || 'Departman eklenemedi.');
+      }
+    } catch (err) {
+      Toast.error(`Hata: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }
+  }
+
+  function deleteDepartment(deptId, deptName) {
+    Modal.confirm({
+      title: 'Departmanı Sil',
+      message: `'${deptName}' adlı departmanı silmek istediğinize emin misiniz?`,
+      confirmText: 'Evet, Sil',
+      confirmClass: 'btn-danger',
+      onConfirm: async () => {
+        try {
+          const res = await API.post(`/api/manage/departments/${deptId}/delete/`, {});
+          if (res.success) {
+            Toast.success(res.message);
+            const card = document.getElementById(`dept-card-${deptId}`);
+            if (card) card.remove();
+          } else {
+            Toast.error(res.message || 'Departman silinemedi.');
+          }
+        } catch (err) {
+          Toast.error(`Hata: ${err.message}`);
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

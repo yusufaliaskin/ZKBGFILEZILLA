@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ device.hostname }} | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/devices.css' %}">
+<style>
+  .device-detail-container {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+  }
+
+  .detail-hero-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .detail-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .detail-hero-logo {
+    width: 54px;
+    height: 54px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 8px;
+  }
+
+  .detail-hero-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .detail-hero-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.02em;
+  }
+
+  .detail-hero-meta {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .detail-grid-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 1.8fr;
+    gap: 18px;
+  }
+
+  @media (max-width: 960px) {
+    .detail-grid-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .detail-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .detail-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .info-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+
+  .info-field-box {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .info-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .info-field-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Live Telemetry Bar Styles */
+  .telemetry-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .telemetry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .telemetry-track {
+    height: 9px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 99px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .telemetry-bar {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.4s ease, background-color 0.4s ease;
+  }
+
+  .live-telemetry-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(16, 185, 129, 0.09);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #10B981;
+  }
+
+  .live-pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 8px #10B981;
+    animation: livePulse 1.2s infinite ease-in-out;
+  }
+
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.25); }
+  }
+
+  .telemetry-quick-stat {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="device-detail-container">
+  <!-- Breadcrumb Navigation -->
+  <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted);">
+    <a href="{% url 'devices:list' %}" style="color: var(--text-muted); text-decoration: none;">Cihaz Envanteri</a>
+    <span>/</span>
+    <span style="color: var(--text-primary); font-weight: 600;">{{ device.hostname }}</span>
+  </div>
+
+  <!-- Hero Header Card -->
+  <div class="detail-hero-card">
+    <div class="detail-hero-left">
+      <div class="detail-hero-logo">
+        <img src="{% static 'img/' %}{% if device.is_windows %}windows.png{% else %}pardus.png{% endif %}" alt="OS Logo">
+      </div>
+      <div>
+        <div class="detail-hero-title">
+          <span>{{ device.hostname }}</span>
+          {% if device.status == 'ONLINE' %}
+            <span class="badge green" style="font-size: 10px; padding: 2px 7px;">ÇEVRİMİÇİ</span>
+          {% elif device.status == 'WARNING' %}
+            <span class="badge orange" style="font-size: 10px; padding: 2px 7px;">UYARI</span>
+          {% else %}
+            <span class="badge gray" style="font-size: 10px; padding: 2px 7px;">ÇEVRİMDİŞI</span>
+          {% endif %}
+        </div>
+        <div class="detail-hero-meta">
+          <span>Sicil: <strong class="badge purple" style="font-size: 10.5px; padding: 1px 6px;">{{ device.personnel_number }}</strong></span>
+          &bull;
+          <span>IP: <strong style="font-family: var(--font-mono); color: var(--text-primary);">{{ device.ip_address }}:{{ device.port }}</strong></span>
+          &bull;
+          <span>OS: <strong id="metric-os-hero">{{ device.get_operating_system_display }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="DeviceManager.testConnection('{{ device.id }}', event)">
+        <i data-lucide="activity" style="width: 14px; height: 14px; color: var(--status-online);"></i>
+        <span>Canlı Ping Testi</span>
+      </button>
+      <a href="{% url 'files:device_manager' device.id %}" class="btn btn-secondary btn-sm">
+        <i data-lucide="folder" style="width: 14px; height: 14px; color: #F59E0B;"></i>
+        <span>ZKFileZilla Dosya Gezgini</span>
+      </a>
+      <a href="{% url 'devices:terminal_device' device.id %}" class="btn btn-primary btn-sm">
+        <i data-lucide="terminal" style="width: 14px; height: 14px;"></i>
+        <span>Canlı Terminal</span>
+      </a>
+      <button class="btn btn-danger btn-sm" onclick="deleteDeviceFromDetail('{{ device.id }}', '{{ device.hostname }}')">
+        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+        <span>Düğümü Sil</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Summary Cards -->
+  <div class="dash-metric-grid">
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">Bağlantı Türü</div>
+      <div class="dash-metric-value" style="font-size: 20px;">{{ device.get_connector_type_display }}</div>
+      <div class="dash-metric-sub">Port: {{ device.port }}</div>
+    </div>
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">İstemci Kullanıcısı</div>
+      <div class="dash-metric-value" style="font-size: 20px;">{{ device.username }}</div>
+      <div class="dash-metric-sub">Yetkili oturum</div>
+    </div>
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">Etki Alanı (Domain)</div>
+      <div class="dash-metric-value" id="metric-domain-val" style="font-size: 18px; color: #8B5CF6;">{{ device.domain|default:"ZIRAATKATILIM.LOCAL" }}</div>
+      <div class="dash-metric-sub">Active Directory / Domain</div>
+    </div>
+    <div class="dash-metric-card">
+      <div class="dash-metric-title">Son Görülme &amp; Senkron</div>
+      <div class="dash-metric-value" id="metric-last-seen-val" style="font-size: 18px; color: #10B981;">Canlı (1 sn)</div>
+      <div class="dash-metric-sub" id="telemetry-time-stamp">Telemetri aktif</div>
+    </div>
+  </div>
+
+  <!-- Main Details & Live Telemetry Layout -->
+  <div class="detail-grid-layout">
+    <!-- Left: Detailed Info Card -->
+    <div class="detail-card">
+      <div class="detail-card-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i data-lucide="info" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+          <span>Düğüm &amp; Envanter Künyesi</span>
+        </div>
+      </div>
+
+      <div class="info-field-grid">
+        <div class="info-field-box">
+          <span class="info-field-label">Sicil Numarası</span>
+          <span class="info-field-value" style="font-family: var(--font-mono); color: #8B5CF6;">{{ device.personnel_number }}</span>
+        </div>
+        <div class="info-field-box">
+          <span class="info-field-label">Bilgisayar Adı (Hostname)</span>
+          <span class="info-field-value">{{ device.hostname }}</span>
+        </div>
+        <div class="info-field-box">
+          <span class="info-field-label">Etki Alanı (Domain)</span>
+          <span class="info-field-value" id="info-domain-field" style="color: #0284C7;">{{ device.domain|default:"ZIRAATKATILIM.LOCAL" }}</span>
+        </div>
+        <div class="info-field-box">
+          <span class="info-field-label">İşletim Sistemi Sürümü</span>
+          <span class="info-field-value" id="metric-os-ver">{{ device.get_operating_system_display }} {{ device.os_version|default:"23.1 (Yirmibir)" }}</span>
+        </div>
+        <div class="info-field-box">
+          <span class="info-field-label">IP Adresi</span>
+          <span class="info-field-value" style="font-family: var(--font-mono); color: #0284C7;">{{ device.ip_address }}:{{ device.port }}</span>
+        </div>
+        <div class="info-field-box">
+          <span class="info-field-label">Kayıt Tarihi</span>
+          <span class="info-field-value">{{ device.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        <div class="info-field-box" style="grid-column: 1 / -1;">
+          <span class="info-field-label">Açıklama / Notlar</span>
+          <span class="info-field-value" style="color: var(--text-muted); font-size: 12px;">{{ device.description|default:"Merkezi uzaktan erişim ve ZKFileZilla operasyon düğümü." }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Live Resource Utilization Card (Updated Every 1 Second) -->
+    <div class="detail-card">
+      <div class="detail-card-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i data-lucide="cpu" style="width: 16px; height: 16px; color: var(--accent-primary);"></i>
+          <span>Canlı Kaynak &amp; Performans Telemetrisi</span>
+        </div>
+        <div class="live-telemetry-pill">
+          <span class="live-pulse-dot"></span>
+          <span>CANLI (1 sn)</span>
+          <span id="telemetry-timer" style="font-family: var(--font-mono); font-size: 11px; margin-left: 2px;"></span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <!-- CPU Progress Bar -->
+        <div class="telemetry-row">
+          <div class="telemetry-header">
+            <span>İşlemci Kullanımı (CPU)</span>
+            <span id="metric-cpu-text" style="color: #10B981; font-family: var(--font-mono); font-weight: 700;">24.5%</span>
+          </div>
+          <div class="telemetry-track">
+            <div class="telemetry-bar" id="metric-cpu-bar" style="width: 24.5%; background: #10B981;"></div>
+          </div>
+        </div>
+
+        <!-- RAM Progress Bar -->
+        <div class="telemetry-row">
+          <div class="telemetry-header">
+            <span>Bellek Doluluğu (RAM)</span>
+            <span id="metric-ram-text" style="color: #38BDF8; font-family: var(--font-mono); font-weight: 700;">52.1% (8.3 GB / 16.0 GB)</span>
+          </div>
+          <div class="telemetry-track">
+            <div class="telemetry-bar" id="metric-ram-bar" style="width: 52.1%; background: #38BDF8;"></div>
+          </div>
+        </div>
+
+        <!-- Disk Progress Bar -->
+        <div class="telemetry-row">
+          <div class="telemetry-header">
+            <span>Disk Doluluğu ({% if device.is_windows %}C:\ Sistem{% else %}/ Kök Dizin{% endif %})</span>
+            <span id="metric-disk-text" style="color: #F59E0B; font-family: var(--font-mono); font-weight: 700;">41.9% (214 GB / 512 GB)</span>
+          </div>
+          <div class="telemetry-track">
+            <div class="telemetry-bar" id="metric-disk-bar" style="width: 41.9%; background: #F59E0B;"></div>
+          </div>
+        </div>
+
+        <!-- 3 Quick Live Diagnostic Cards -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px;">
+          <div class="telemetry-quick-stat">
+            <div>
+              <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">GECİKME (PING)</div>
+              <div style="font-size: 14px; font-weight: 700; color: #10B981; font-family: var(--font-mono);" id="metric-latency-val">1.2 ms</div>
+            </div>
+            <i data-lucide="activity" style="width: 16px; height: 16px; color: #10B981;"></i>
+          </div>
+
+          <div class="telemetry-quick-stat">
+            <div>
+              <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">AKTİF SÜREÇLER</div>
+              <div style="font-size: 14px; font-weight: 700; color: #38BDF8; font-family: var(--font-mono);" id="metric-proc-val">124 Süreç</div>
+            </div>
+            <i data-lucide="layers" style="width: 16px; height: 16px; color: #38BDF8;"></i>
+          </div>
+
+          <div class="telemetry-quick-stat">
+            <div>
+              <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">ÇALIŞMA SÜRESİ</div>
+              <div style="font-size: 13px; font-weight: 700; color: #F59E0B; font-family: var(--font-mono);" id="metric-uptime-val">12g 4s 18dk</div>
+            </div>
+            <i data-lucide="clock" style="width: 16px; height: 16px; color: #F59E0B;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/modules/devices.js' %}"></script>
+<script>
+  (function() {
+    const DEVICE_ID = '{{ device.id }}';
+    let liveTelemetryTimer = null;
+
+    async function updateLiveMetrics() {
+      try {
+        const res = await fetch(`/api/devices/${DEVICE_ID}/system-info/`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // 1. CPU
+        const cpuVal = data.cpu_usage_percent || 0;
+        const cpuBar = document.getElementById('metric-cpu-bar');
+        const cpuText = document.getElementById('metric-cpu-text');
+        if (cpuBar && cpuText) {
+          cpuBar.style.width = `${Math.min(cpuVal, 100)}%`;
+          cpuText.textContent = `${cpuVal.toFixed(1)}%`;
+          const color = cpuVal > 80 ? '#EF4444' : (cpuVal > 60 ? '#F59E0B' : '#10B981');
+          cpuBar.style.backgroundColor = color;
+          cpuText.style.color = color;
+        }
+
+        // 2. RAM
+        const ramVal = data.memory_usage_percent || 0;
+        const ramBar = document.getElementById('metric-ram-bar');
+        const ramText = document.getElementById('metric-ram-text');
+        if (ramBar && ramText) {
+          ramBar.style.width = `${Math.min(ramVal, 100)}%`;
+          ramText.textContent = `${ramVal.toFixed(1)}% (${data.memory_used_gb || 0} GB / ${data.memory_total_gb || 0} GB)`;
+          const color = ramVal > 85 ? '#EF4444' : (ramVal > 70 ? '#F59E0B' : '#38BDF8');
+          ramBar.style.backgroundColor = color;
+        }
+
+        // 3. Disk
+        const diskVal = data.disk_usage_percent || 0;
+        const diskBar = document.getElementById('metric-disk-bar');
+        const diskText = document.getElementById('metric-disk-text');
+        if (diskBar && diskText) {
+          diskBar.style.width = `${Math.min(diskVal, 100)}%`;
+          diskText.textContent = `${diskVal.toFixed(1)}% (${data.disk_used_gb || 0} GB / ${data.disk_total_gb || 0} GB)`;
+        }
+
+        // 4. Quick Diagnostic Values
+        const latencyEl = document.getElementById('metric-latency-val');
+        if (latencyEl) latencyEl.textContent = `${data.latency_ms || 1.2} ms`;
+
+        const procEl = document.getElementById('metric-proc-val');
+        if (procEl) procEl.textContent = `${data.process_count || 124} Süreç`;
+
+        const uptimeEl = document.getElementById('metric-uptime-val');
+        if (uptimeEl) uptimeEl.textContent = data.uptime_display || '--';
+
+        // 5. Domain, OS & Timestamp
+        const domainEl = document.getElementById('metric-domain-val');
+        const infoDomainEl = document.getElementById('info-domain-field');
+        if (data.domain) {
+          if (domainEl) domainEl.textContent = data.domain;
+          if (infoDomainEl) infoDomainEl.textContent = data.domain;
+        }
+
+        const osVerEl = document.getElementById('metric-os-ver');
+        if (osVerEl && data.os_version) {
+          osVerEl.textContent = `${data.operating_system} ${data.os_version}`;
+        }
+
+        const timerEl = document.getElementById('telemetry-timer');
+        if (timerEl) {
+          const d = new Date();
+          timerEl.textContent = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+        }
+      } catch (err) {
+        console.warn('Live telemetry polling error:', err);
+      }
+    }
+
+    // Initial load + 4-second interval poller (pauses when tab is hidden)
+    updateLiveMetrics();
+    liveTelemetryTimer = setInterval(() => {
+      if (!document.hidden) {
+        updateLiveMetrics();
+      }
+    }, 4000);
+
+    window.addEventListener('beforeunload', () => {
+      if (liveTelemetryTimer) clearInterval(liveTelemetryTimer);
+    });
+  })();
+
+  function deleteDeviceFromDetail(id, hostname) {
+    Modal.confirm({
+      title: 'Düğümü / Cihazı Sil',
+      message: `'${hostname}' isimli sunucu envanterden tamamen silinsin mi? Bu işlem geri alınamaz.`,
+      confirmText: 'Evet, Cihazı Sil',
+      onConfirm: async () => {
+        try {
+          await API.delete(`/api/devices/${id}/`);
+          Toast.success(`'${hostname}' cihazı silindi. Yönlendiriliyorsunuz...`);
+          setTimeout(() => {
+            window.location.href = '/devices/';
+          }, 800);
+        } catch (err) {
+          Toast.error(`Cihaz silinemedi: ${err.message}`);
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

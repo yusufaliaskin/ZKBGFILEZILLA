@@ -1,0 +1,891 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Cihaz &amp; Düğüm Envanteri | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/devices.css' %}?v={% now 'U' %}">
+<style>
+  .devices-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .devices-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    margin: 0;
+  }
+
+  .devices-sub {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Metric cards row */
+  .devices-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  @media (max-width: 1100px) {
+    .devices-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .devices-kpi-grid { grid-template-columns: 1fr; }
+  }
+
+  .dev-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--card-radius, 10px);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .dev-kpi-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+
+  .dev-kpi-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .dev-kpi-val {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dev-kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Toolbar */
+  .dev-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--card-radius, 10px);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .dev-table-toolbar {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .dev-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .dev-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 34px;
+    min-width: 240px;
+    flex: 1;
+    max-width: 380px;
+  }
+
+  .dev-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12px;
+    color: var(--text-primary);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  /* Custom Sleek Dropdown Filter Component */
+  .zk-select-dropdown {
+    position: relative;
+    user-select: none;
+  }
+
+  .zk-select-trigger {
+    height: 34px;
+    padding: 0 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 175px;
+  }
+
+  .zk-select-trigger:hover {
+    border-color: var(--text-muted);
+  }
+
+  .zk-select-trigger.active {
+    border-color: var(--zk-red, #E30613);
+    box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.15);
+  }
+
+  .zk-select-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    z-index: 120;
+    min-width: 190px;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .zk-select-menu.show {
+    display: flex;
+  }
+
+  .zk-select-item {
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+
+  .zk-select-item:hover {
+    background: var(--sidebar-hover);
+  }
+
+  .zk-select-item.selected {
+    background: rgba(227, 6, 19, 0.08);
+    color: var(--zk-red, #E30613);
+    font-weight: 700;
+  }
+
+  /* Table styling */
+  .dev-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .dev-table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 70px;
+    min-height: 200px;
+  }
+
+  .dev-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .dev-data-table thead th {
+    background: var(--bg-surface);
+    padding: 11px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+  }
+
+  .dev-data-table tbody tr {
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background 0.15s ease;
+  }
+
+  .dev-data-table tbody tr:hover {
+    background: var(--sidebar-hover);
+  }
+
+  .dev-data-table tbody td {
+    padding: 11px 14px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  /* Colorful Status Pills */
+  .zk-table-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .zk-table-pill.online {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10B981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .zk-table-pill.warning {
+    background: rgba(227, 6, 19, 0.12);
+    color: #E30613;
+    border: 1px solid rgba(227, 6, 19, 0.3);
+  }
+  .zk-table-pill.offline {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94A3B8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+  }
+
+  .zk-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .zk-status-dot.online { background: #10B981; box-shadow: 0 0 6px #10B981; }
+  .zk-status-dot.warning { background: #E30613; box-shadow: 0 0 6px #E30613; }
+  .zk-status-dot.offline { background: #94A3B8; }
+
+  /* Colorful Sicil & IP Badges */
+  .zk-sicil-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    color: #8B5CF6;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 11.5px;
+  }
+
+  .zk-ip-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    background: rgba(14, 165, 233, 0.09);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    color: #0284C7;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 11.5px;
+  }
+
+  /* OS Badge with Logo */
+  .zk-os-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .zk-os-badge.pardus {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10B981;
+  }
+  .zk-os-badge.win {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #0284C7;
+  }
+  .zk-os-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+  }
+
+  .zk-host-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .zk-host-name {
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .zk-host-sub {
+    font-size: 10.5px;
+    color: var(--text-muted);
+  }
+
+  .zk-user-cell, .zk-time-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+  }
+
+  /* Colorful Action Buttons */
+  .zk-action-btn {
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+  .zk-action-btn.ping {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366F1;
+    border-color: rgba(99, 102, 241, 0.25);
+  }
+  .zk-action-btn.ping:hover {
+    background: rgba(99, 102, 241, 0.2);
+  }
+  .zk-action-btn.ssh {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10B981;
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+  .zk-action-btn.ssh:hover {
+    background: rgba(16, 185, 129, 0.22);
+  }
+  .zk-action-btn.rdp {
+    background: rgba(56, 189, 248, 0.12);
+    color: #0284C7;
+    border-color: rgba(56, 189, 248, 0.3);
+  }
+  .zk-action-btn.rdp:hover {
+    background: rgba(56, 189, 248, 0.22);
+  }
+  .zk-action-btn.sftp {
+    background: rgba(245, 158, 11, 0.12);
+    color: #D97706;
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  .zk-action-btn.sftp:hover {
+    background: rgba(245, 158, 11, 0.22);
+  }
+  .zk-action-btn.more {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    justify-content: center;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+  .zk-action-btn.more:hover {
+    border-color: var(--text-muted);
+  }
+
+  .action-dropdown-menu {
+    position: absolute;
+    right: 0;
+    min-width: 170px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    padding: 4px;
+    z-index: 9999;
+    display: none;
+  }
+  .action-dropdown-menu.active {
+    display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="devices-page-wrapper">
+  <!-- 1. Breadcrumb & Header Row -->
+  <div class="page-breadcrumb" style="margin-bottom: 8px;">
+    <a href="{% url 'dashboard:index' %}" class="breadcrumb-item">Ana Sayfa</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-active">Yetkili Düğüm Envanteri</span>
+  </div>
+
+  <div class="devices-header-row">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(56,189,248,0.1);display:flex;align-items:center;justify-content:center;color:#38BDF8;">
+        <i data-lucide="server" style="width:20px;height:20px;"></i>
+      </div>
+      <div>
+        <h1 class="devices-title">Yetkili Düğüm &amp; Sunucu Envanteri</h1>
+        <p class="devices-sub">Merkezi SSH (Pardus/Linux) ve WinRM (Windows) Güvenli Uç Noktaları</p>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="Modal.open('add-device-modal')">
+      <i data-lucide="plus" style="width: 15px; height: 15px;"></i>
+      <span>Yeni Düğüm Ekle</span>
+    </button>
+  </div>
+
+  <!-- 2. Minimal KPI Metric Cards -->
+  <div class="devices-kpi-grid">
+    <div class="dev-kpi-card animate-fade-in" style="position:relative;overflow:hidden;padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="dev-kpi-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">Toplam Kayıtlı Düğüm</div>
+        <div style="display:flex;gap:6px;align-items:center;background:var(--bg-surface);padding:3px 7px;border-radius:6px;border:1px solid var(--border-subtle);">
+          <img src="{% static 'img/pardus.png' %}" alt="Pardus" style="width:15px;height:15px;object-fit:contain;">
+          <img src="{% static 'img/windows.png' %}" alt="Windows" style="width:13px;height:13px;object-fit:contain;">
+        </div>
+      </div>
+      <div class="dev-kpi-val" style="font-size:28px;font-weight:800;color:var(--text-primary);">{{ total_devices }}</div>
+      <div class="dev-kpi-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">Envanterdeki tüm merkezi cihazlar</div>
+    </div>
+
+    <div class="dev-kpi-card animate-fade-in" style="position:relative;overflow:hidden;padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="dev-kpi-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">Çevrimiçi Düğümler</div>
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 8px #10B981;"></span>
+      </div>
+      <div class="dev-kpi-val" style="font-size:28px;font-weight:800;color:#10B981;">{{ online_devices }}</div>
+      <div class="dev-kpi-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">Canlı SSH ve SFTP oturumuna hazır</div>
+    </div>
+
+    <div class="dev-kpi-card animate-fade-in" style="position:relative;overflow:hidden;padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="dev-kpi-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">Uyarı &amp; Çevrimdışı</div>
+        <i data-lucide="alert-circle" style="width:16px;height:16px;color:{% if offline_devices > 0 %}var(--zk-red, #E30613){% else %}var(--text-muted){% endif %};"></i>
+      </div>
+      <div class="dev-kpi-val" style="font-size:28px;font-weight:800;color:{% if offline_devices > 0 %}var(--zk-red, #E30613){% else %}var(--text-muted){% endif %};">{{ offline_devices }}</div>
+      <div class="dev-kpi-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">Yanıtsız veya kapalı uç noktalar</div>
+    </div>
+
+    <div class="dev-kpi-card animate-fade-in" style="position:relative;overflow:hidden;padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="dev-kpi-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">İşletim Sistemi Dağılımı</div>
+        <i data-lucide="layers" style="width:16px;height:16px;color:var(--accent-primary);"></i>
+      </div>
+      <div class="dev-kpi-val" style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.1);padding:3px 9px;border-radius:6px;border:1px solid rgba(16,185,129,0.25);">
+          <img src="{% static 'img/pardus.png' %}" alt="Pardus" style="width:15px;height:15px;object-fit:contain;">
+          <span style="color:#10B981;font-weight:700;font-size:12.5px;">{{ linux_count }} Pardus</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(56,189,248,0.1);padding:3px 9px;border-radius:6px;border:1px solid rgba(56,189,248,0.25);">
+          <img src="{% static 'img/windows.png' %}" alt="Windows" style="width:14px;height:14px;object-fit:contain;">
+          <span style="color:#38BDF8;font-weight:700;font-size:12.5px;">{{ windows_count }} Win</span>
+        </div>
+      </div>
+      <div class="dev-kpi-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">Platform bazlı uç nokta mimarisi</div>
+    </div>
+  </div>
+
+  <!-- 3. Table & Filter Toolbar Container -->
+  <div class="dev-table-card">
+    <div class="dev-table-toolbar">
+      <div class="dev-filter-group">
+        <div class="dev-search-box">
+          <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+          <input type="text" id="device-search-input" class="dev-search-input" placeholder="Sicil no, sunucu adı veya IP ara...">
+        </div>
+
+        <!-- Hidden inputs for filter state -->
+        <input type="hidden" id="device-os-filter" value="">
+        <input type="hidden" id="device-status-filter" value="">
+
+        <!-- Custom OS Filter Dropdown -->
+        <div class="zk-select-dropdown" id="dropdownOsFilter">
+          <button type="button" class="zk-select-trigger" onclick="DeviceManager.toggleDropdown('dropdownOsFilter', event)">
+            <span class="zk-select-content" id="selectedOsText" style="display:flex;align-items:center;gap:6px;">
+              <span>Tüm İşletim Sistemleri</span>
+            </span>
+            <i data-lucide="chevron-down" style="width:12px;height:12px;color:var(--text-muted);"></i>
+          </button>
+          <div class="zk-select-menu" id="dropdownOsMenu">
+            <div class="zk-select-item selected" data-value="" onclick="DeviceManager.setOsFilter('', 'Tüm İşletim Sistemleri', null)">
+              <span>Tüm İşletim Sistemleri</span>
+            </div>
+            <div class="zk-select-item" data-value="LINUX" onclick="DeviceManager.setOsFilter('LINUX', 'Pardus / Linux', '{% static 'img/pardus.png' %}')">
+              <img src="{% static 'img/pardus.png' %}" style="width:16px;height:16px;object-fit:contain;" alt="Pardus">
+              <span>Pardus / Linux</span>
+            </div>
+            <div class="zk-select-item" data-value="WINDOWS" onclick="DeviceManager.setOsFilter('WINDOWS', 'Windows İstemciler', '{% static 'img/windows.png' %}')">
+              <img src="{% static 'img/windows.png' %}" style="width:16px;height:16px;object-fit:contain;" alt="Windows">
+              <span>Windows İstemciler</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Status Filter Dropdown -->
+        <div class="zk-select-dropdown" id="dropdownStatusFilter">
+          <button type="button" class="zk-select-trigger" onclick="DeviceManager.toggleDropdown('dropdownStatusFilter', event)">
+            <span class="zk-select-content" id="selectedStatusText" style="display:flex;align-items:center;gap:6px;">
+              <span>Tüm Durumlar</span>
+            </span>
+            <i data-lucide="chevron-down" style="width:12px;height:12px;color:var(--text-muted);"></i>
+          </button>
+          <div class="zk-select-menu" id="dropdownStatusMenu">
+            <div class="zk-select-item selected" data-value="" onclick="DeviceManager.setStatusFilter('', 'Tüm Durumlar', null)">
+              <span>Tüm Durumlar</span>
+            </div>
+            <div class="zk-select-item" data-value="ONLINE" onclick="DeviceManager.setStatusFilter('ONLINE', 'Çevrimiçi', '#10B981')">
+              <span style="width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 5px #10B981;"></span>
+              <span>Çevrimiçi</span>
+            </div>
+            <div class="zk-select-item" data-value="WARNING" onclick="DeviceManager.setStatusFilter('WARNING', 'Uyarı', '#E30613')">
+              <span style="width:8px;height:8px;border-radius:50%;background:#E30613;box-shadow:0 0 5px #E30613;"></span>
+              <span>Uyarı</span>
+            </div>
+            <div class="zk-select-item" data-value="OFFLINE" onclick="DeviceManager.setStatusFilter('OFFLINE', 'Çevrimdışı', '#94A3B8')">
+              <span style="width:8px;height:8px;border-radius:50%;background:#94A3B8;"></span>
+              <span>Çevrimdışı</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary btn-sm" onclick="DeviceManager.pingAllNodes(this)" title="Tüm Düğümleri Canlı Ping Testine Tabi Tut">
+          <i data-lucide="activity" style="width: 13px; height: 13px; color: #10B981;"></i>
+          <span>Canlı Ağ Radarı (Ping All)</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="DeviceManager.loadDevices()" title="Yenile">
+          <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i>
+          <span>Yenile</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="dev-table-responsive">
+      <table class="dev-data-table">
+        <thead>
+          <tr>
+            <th style="width: 110px;">Durum</th>
+            <th style="width: 110px;">Sicil No</th>
+            <th>Bilgisayar Adı (Hostname)</th>
+            <th style="width: 130px;">İşletim Sistemi</th>
+            <th style="width: 140px;">IP Adresi</th>
+            <th style="width: 110px;">Kullanıcı</th>
+            <th style="width: 130px;">Son Görülme</th>
+            <th style="text-align: right; width: 160px; padding-right: 18px;">Hızlı İşlemler</th>
+          </tr>
+        </thead>
+        <tbody id="device-table-body">
+          <!-- Populated dynamically via devices.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Device Modal -->
+<div id="add-device-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 600px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg);">
+    <!-- Modal Header -->
+    <div class="modal-header" style="padding: 16px 22px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(227, 6, 19, 0.12); color: var(--zk-red, #E30613); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <i data-lucide="server" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0;">Yeni Düğüm / SSH Bağlantısı Tanımla</h3>
+          <span style="font-size: 12px; color: var(--text-muted);">Pardus/Linux SSH &amp; SFTP veya Windows uç noktası kaydedin</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('add-device-modal')" title="Kapat">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="add-device-form">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px; padding: 20px 22px; background: var(--bg-surface);">
+        
+        <!-- 1. Visual OS Selector Cards (Pardus vs Windows) -->
+        <div>
+          <label class="form-label" style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; display: block;">
+            İşletim Sistemi &amp; Bağlantı Türü *
+          </label>
+          <input type="hidden" id="dev-os-select" name="operating_system" value="LINUX">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <!-- Pardus / Linux Card -->
+            <div id="os-card-linux" class="os-select-card active" onclick="DeviceManager.selectOs('LINUX')" style="border: 2px solid #10B981; background: rgba(16, 185, 129, 0.06); border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease;">
+              <div style="width: 42px; height: 42px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; padding: 5px; flex-shrink: 0;">
+                <img src="{% static 'img/pardus.png' %}" alt="Pardus Logo" style="width: 100%; height: 100%; object-fit: contain;">
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                  <strong style="font-size: 13px; color: var(--text-primary);">Pardus / Linux</strong>
+                  <span class="badge green" style="font-size: 9px; padding: 1px 5px;">ÖNERİLEN</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">SSHv2 &bull; SFTP (Port 22)</div>
+              </div>
+            </div>
+
+            <!-- Windows Card -->
+            <div id="os-card-windows" class="os-select-card" onclick="DeviceManager.selectOs('WINDOWS')" style="border: 1px solid var(--border-default); background: var(--bg-card); border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease; opacity: 0.85;">
+              <div style="width: 42px; height: 42px; border-radius: 8px; background: var(--bg-surface); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; padding: 6px; flex-shrink: 0;">
+                <img src="{% static 'img/windows.png' %}" alt="Windows Logo" style="width: 100%; height: 100%; object-fit: contain;">
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                  <strong style="font-size: 13px; color: var(--text-primary);">Windows</strong>
+                  <span class="badge blue" style="font-size: 9px; padding: 1px 5px;">SSH / SFTP</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">OpenSSH &bull; SFTP (Port 22)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Live Command Preview Banner -->
+        <div style="background: var(--bg-base); border: 1px solid var(--border-default); border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; min-width: 0;">
+            <i data-lucide="terminal" style="width: 16px; height: 16px; color: #10B981; flex-shrink: 0;" id="dev-cmd-icon"></i>
+            <span id="dev-cmd-preview" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ssh root@10.211.31.42</span>
+          </div>
+          <span class="badge green font-bold" id="dev-os-badge" style="font-size: 9.5px; padding: 2px 7px; flex-shrink: 0;">PARDUS / SSH (Port 22)</span>
+        </div>
+
+        <!-- 3. Primary Connection Parameters Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Hedef IP / Sunucu Adresi *</label>
+            <input type="text" id="dev-ip-input" name="ip_address" class="form-input" placeholder="Örn: 10.211.31.42" required oninput="DeviceManager.updateModalCmdPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Oturum Kullanıcı Adı *</label>
+            <input type="text" id="dev-user-input" name="username" class="form-input" placeholder="root, admin, operator..." required oninput="DeviceManager.updateModalCmdPreview()">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Sunucu Adı (Hostname / Opsiyonel)</label>
+            <input type="text" id="dev-hostname-input" name="hostname" class="form-input" placeholder="Örn: PARDUS-SRV-01 (Boşsa IP atanır)">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Oturum Parolası / Secret *</label>
+            <input type="password" id="dev-secret-input" name="secret" class="form-input" placeholder="Uzak makine oturum parolası veya SSH Key" required>
+          </div>
+        </div>
+
+        <!-- Hidden / Advanced Settings (Port & Sicil) -->
+        <input type="hidden" id="dev-port-input" name="port" value="22">
+        <input type="hidden" id="dev-sicil-input" name="personnel_number" value="">
+        <input type="hidden" id="dev-domain-input" name="domain" value="">
+
+        <!-- Optional Advanced Toggle -->
+        <details style="font-size: 11.5px; color: var(--text-muted);">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--accent-primary); margin-bottom: 8px;">Gelişmiş Ayarlar (Özel Port, Domain)</summary>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size: 11px;">Özel Port (Varsayılan: 22/3389)</label>
+              <input type="number" class="form-input" placeholder="22" oninput="document.getElementById('dev-port-input').value = this.value; DeviceManager.updateModalCmdPreview();">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 11px;">Etki Alanı (Domain / Opsiyonel)</label>
+              <input type="text" class="form-input" placeholder="ZIRAATKATILIM.LOCAL" oninput="document.getElementById('dev-domain-input').value = this.value;">
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border-top: 1px solid var(--border-default);">
+        <div style="font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #10B981;"></i>
+          <span>Fernet 256-Bit Uçtan Uca Şifreli</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary" onclick="Modal.close('add-device-modal')">İptal</button>
+          <button type="submit" id="add-device-submit-btn" class="btn btn-primary" style="padding: 0 18px; font-weight: 700;">
+            <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+            <span>Kaydet &amp; Bağlantıyı Doğrula</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Device Modal -->
+<div id="edit-device-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 600px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg);">
+    <!-- Modal Header -->
+    <div class="modal-header" style="padding: 16px 22px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(14, 165, 233, 0.12); color: #0284C7; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <i data-lucide="edit-3" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0;">Düğüm Bilgilerini Düzenle</h3>
+          <span style="font-size: 12px; color: var(--text-muted);" id="edit-device-subtitle">Sunucu IP, port veya oturum parametrelerini güncelleyin</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('edit-device-modal')" title="Kapat">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="edit-device-form" onsubmit="DeviceManager.handleEditDevice(event)">
+      <input type="hidden" id="edit-device-id">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px; padding: 20px 22px; background: var(--bg-surface);">
+        
+        <!-- 1. Visual OS Selector Cards (Pardus vs Windows) -->
+        <div>
+          <label class="form-label" style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; display: block;">
+            İşletim Sistemi &amp; Bağlantı Türü *
+          </label>
+          <input type="hidden" id="edit-dev-os-select" name="operating_system" value="LINUX">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <!-- Pardus / Linux Card -->
+            <div id="edit-os-card-linux" class="os-select-card active" onclick="DeviceManager.selectEditOs('LINUX')" style="border: 2px solid #10B981; background: rgba(16, 185, 129, 0.06); border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease;">
+              <div style="width: 42px; height: 42px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; padding: 5px; flex-shrink: 0;">
+                <img src="{% static 'img/pardus.png' %}" alt="Pardus Logo" style="width: 100%; height: 100%; object-fit: contain;">
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                  <strong style="font-size: 13px; color: var(--text-primary);">Pardus / Linux</strong>
+                  <span class="badge green" style="font-size: 9px; padding: 1px 5px;">SSHv2</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">SSHv2 &bull; SFTP (Port 22)</div>
+              </div>
+            </div>
+
+            <!-- Windows Card -->
+            <div id="edit-os-card-windows" class="os-select-card" onclick="DeviceManager.selectEditOs('WINDOWS')" style="border: 1px solid var(--border-default); background: var(--bg-card); border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease; opacity: 0.85;">
+              <div style="width: 42px; height: 42px; border-radius: 8px; background: var(--bg-surface); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; padding: 6px; flex-shrink: 0;">
+                <img src="{% static 'img/windows.png' %}" alt="Windows Logo" style="width: 100%; height: 100%; object-fit: contain;">
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                  <strong style="font-size: 13px; color: var(--text-primary);">Windows</strong>
+                  <span class="badge blue" style="font-size: 9px; padding: 1px 5px;">SSH / SFTP</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">OpenSSH &bull; SFTP (Port 22)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Live Command Preview Banner -->
+        <div style="background: var(--bg-base); border: 1px solid var(--border-default); border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; min-width: 0;">
+            <i data-lucide="terminal" style="width: 16px; height: 16px; color: #10B981; flex-shrink: 0;" id="edit-dev-cmd-icon"></i>
+            <span id="edit-dev-cmd-preview" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ssh root@10.211.31.42</span>
+          </div>
+          <span class="badge green font-bold" id="edit-dev-os-badge" style="font-size: 9.5px; padding: 2px 7px; flex-shrink: 0;">PARDUS / SSH (Port 22)</span>
+        </div>
+
+        <!-- 3. Primary Connection Parameters Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Hedef IP / Sunucu Adresi *</label>
+            <input type="text" id="edit-ip-address" name="ip_address" class="form-input" placeholder="Örn: 10.211.31.42" required oninput="DeviceManager.updateEditModalCmdPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Oturum Kullanıcı Adı *</label>
+            <input type="text" id="edit-username" name="username" class="form-input" placeholder="root, admin, operator..." required oninput="DeviceManager.updateEditModalCmdPreview()">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Sunucu Adı (Hostname) *</label>
+            <input type="text" id="edit-hostname" name="hostname" class="form-input" placeholder="Örn: PARDUS-SRV-01" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px; font-weight: 600;">Sicil Numarası</label>
+            <input type="text" id="edit-personnel-number" name="personnel_number" class="form-input" placeholder="12345">
+          </div>
+        </div>
+
+        <!-- Hidden inputs for port & domain -->
+        <input type="hidden" id="edit-port" name="port" value="22">
+        <input type="hidden" id="edit-domain" name="domain" value="">
+        <input type="hidden" id="edit-display-name" name="display_name" value="">
+
+        <!-- Optional Advanced Toggle -->
+        <details style="font-size: 11.5px; color: var(--text-muted);">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--accent-primary); margin-bottom: 8px;">Gelişmiş Ayarlar (Özel Port, Domain, Açıklama)</summary>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Özel Port (Varsayılan: 22)</label>
+                <input type="number" id="edit-port-visible" class="form-input" placeholder="22" oninput="document.getElementById('edit-port').value = this.value; DeviceManager.updateEditModalCmdPreview();">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Etki Alanı (Domain / Opsiyonel)</label>
+                <input type="text" id="edit-domain-visible" class="form-input" placeholder="ZIRAATKATILIM.LOCAL" oninput="document.getElementById('edit-domain').value = this.value;">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 11px;">Açıklama / Notlar</label>
+              <textarea id="edit-description" class="form-input" rows="2" placeholder="Sunucu notları..."></textarea>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border-top: 1px solid var(--border-default);">
+        <div style="font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #10B981;"></i>
+          <span>Fernet 256-Bit Uçtan Uca Şifreli</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary" onclick="Modal.close('edit-device-modal')">İptal</button>
+          <button type="submit" id="edit-device-submit-btn" class="btn btn-primary" style="padding: 0 18px; font-weight: 700;">
+            <i data-lucide="save" style="width: 15px; height: 15px;"></i>
+            <span>Değişiklikleri Kaydet</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/modules/devices.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

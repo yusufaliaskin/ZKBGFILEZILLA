@@ -1,0 +1,178 @@
+{% load static accounts_extras %}
+<header class="wazuh-clean-topbar">
+  <!-- Left: Single Clean Sidebar Toggle Button -->
+  <div class="topbar-left-zone">
+    <button type="button" class="topbar-toggle-btn" id="sidebarToggleBtn" title="Menüyü Daralt / Genişlet">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Center: Live Search Box -->
+  <div class="topbar-center-zone">
+    <form method="get" action="{% url 'devices:list' %}" class="clean-search-box" id="topbarSearchForm">
+      <svg class="search-svg-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" name="search" id="topbarGlobalSearch" placeholder="Cihaz adı, IP adresi veya sicil ara..." value="{{ request.GET.search|default:'' }}" autocomplete="off">
+      <button type="submit" class="search-kql-pill" style="border:none;cursor:pointer;">Ara</button>
+    </form>
+
+    <!-- Instant Live Autocomplete Dropdown -->
+    <div id="globalSearchDropdown" class="global-search-dropdown-menu"></div>
+  </div>
+
+  <!-- Right: Click-to-Open User Dropdown Menu -->
+  <div class="topbar-right-zone" style="display:flex;align-items:center;gap:10px;">
+
+    <!-- Smart SOC Notification Bell Dropdown -->
+    <div class="topbar-notif-wrapper" style="position: relative;">
+      <button type="button" class="topbar-icon-btn" id="notifDropdownTrigger" title="SOC Alarm ve Bildirim Merkezi" style="position:relative;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-card);color:var(--text-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s ease;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span class="notif-badge-dot" id="notifBadgeDot" style="position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#EF4444;box-shadow:0 0 6px #EF4444;display:none;"></span>
+      </button>
+
+      <!-- Notification Slide-over / Dropdown Drawer -->
+      <div class="notif-dropdown-menu" id="notifDropdownMenu" style="position:absolute;top:calc(100% + 8px);right:0;width:340px;max-width:90vw;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,0.35);z-index:999999;display:none;flex-direction:column;overflow:hidden;">
+        <!-- Header -->
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <strong style="font-size:12.5px;color:var(--text-primary);">SOC Bildirim Merkezi</strong>
+            <span class="badge red" id="notifCountBadge" style="font-size:10px;padding:1px 5px;">0</span>
+          </div>
+          <button type="button" onclick="Notifications.markAllRead()" style="background:none;border:none;color:var(--accent-primary);font-size:11px;cursor:pointer;font-weight:600;">Okundu Say</button>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div style="display:flex;gap:4px;padding:6px 12px;border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);font-size:11px;">
+          <button type="button" class="notif-tab active" onclick="Notifications.filterTab('all', this)" style="padding:3px 7px;border-radius:6px;border:none;background:var(--sidebar-hover);color:var(--text-primary);cursor:pointer;font-weight:600;">Tümü</button>
+          <button type="button" class="notif-tab" onclick="Notifications.filterTab('alarm', this)" style="padding:3px 7px;border-radius:6px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:600;">Alarmlar</button>
+          <button type="button" class="notif-tab" onclick="Notifications.filterTab('security', this)" style="padding:3px 7px;border-radius:6px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:600;">Güvenlik</button>
+          <button type="button" class="notif-tab" onclick="Notifications.filterTab('system', this)" style="padding:3px 7px;border-radius:6px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:600;">Sistem</button>
+        </div>
+
+        <!-- Notification List Items Container -->
+        <div id="notifItemsList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;">
+          <!-- Populated dynamically via notifications.js -->
+        </div>
+
+        <!-- Footer -->
+        <a href="{% url 'audit:list' %}" style="padding:9px 14px;text-align:center;font-size:11px;color:var(--accent-primary);border-top:1px solid var(--border-subtle);text-decoration:none;font-weight:700;background:var(--bg-surface);display:block;">
+          Tüm SIEM Olay Defterini Aç &rarr;
+        </a>
+      </div>
+    </div>
+
+    <!-- Compact User Pill with Downward Dropdown -->
+    <div class="topbar-user-dropdown-wrapper">
+      <button type="button" class="topbar-user-pill-btn" id="userDropdownTrigger" title="Kullanıcı Menüsü" style="padding:4px 10px;height:auto;">
+        <div class="user-pill-avatar" style="padding:0;overflow:hidden;background:transparent;width:28px;height:28px;">
+          <img src="{% static 'img/zk.png' %}" alt="ZK" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">
+          <span class="avatar-status-ring"></span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;margin:0 4px;">
+          <span class="user-pill-name" style="font-weight:700;font-size:12.5px;color:var(--text-primary);">{{ request.user.get_full_name|default:request.user.username }}</span>
+          <span style="font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:0.2px;">{{ request.user|user_role|default:"Administrator" }}</span>
+        </div>
+        <svg class="user-pill-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      <!-- Downward Dropdown Menu -->
+      <div class="topbar-dropdown-menu" id="userDropdownMenu">
+        <!-- User Info Header -->
+        <div class="dropdown-user-header">
+          <div class="dropdown-avatar" style="padding:0;overflow:hidden;background:transparent;">
+            <img src="{% static 'img/zk.png' %}" alt="ZK" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">
+          </div>
+          <div class="dropdown-meta">
+            <div class="dropdown-name" style="font-weight:700;font-size:13.5px;">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="dropdown-role" style="font-size:11px;color:var(--text-muted);font-weight:600;">{{ request.user|user_role|default:"Administrator" }}</div>
+          </div>
+        </div>
+
+        <div class="dropdown-divider"></div>
+
+        <!-- Quick Theme Toggle Action -->
+        <div class="dropdown-action-row" id="dropdownThemeToggle">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="dropdown-action-icon" id="themeIconSlot">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </div>
+            <span class="dropdown-action-text" id="themeLabelText">Koyu / Açık Tema</span>
+          </div>
+          <div class="mini-theme-switch-pill" id="miniThemeSwitch">
+            <span class="switch-knob"></span>
+          </div>
+        </div>
+
+        <!-- Settings Link -->
+        <a href="{% url 'accounts:settings' %}" class="dropdown-action-row">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="dropdown-action-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </div>
+            <span class="dropdown-action-text">Sistem Ayarları</span>
+          </div>
+        </a>
+
+        <!-- Manage Link -->
+        <a href="{% url 'accounts:manage' %}" class="dropdown-action-row">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="dropdown-action-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <span class="dropdown-action-text">Yönetim Merkezi</span>
+          </div>
+        </a>
+
+        <!-- Audit Logs Link -->
+        <a href="{% url 'audit:list' %}" class="dropdown-action-row">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="dropdown-action-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <span class="dropdown-action-text">Denetim Günlükleri</span>
+          </div>
+        </a>
+
+        <div class="dropdown-divider"></div>
+
+        <!-- Logout Action -->
+        <form method="post" action="{% url 'accounts:logout' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="dropdown-logout-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Güvenli Çıkış Yap</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</header>

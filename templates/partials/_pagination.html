@@ -1,0 +1,32 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="table-pagination-bar">
+  <div class="pagination-count-info">
+    Toplam <b>{{ page_obj.paginator.count }}</b> kayıt (Sayfa <b>{{ page_obj.number }}</b> / {{ page_obj.paginator.num_pages }})
+  </div>
+  <div class="pagination-controls">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if query_params %}&{{ query_params }}{% endif %}" class="pagination-btn nav-btn" title="Önceki Sayfa">
+        &larr; Önceki
+      </a>
+    {% else %}
+      <span class="pagination-btn nav-btn disabled">&larr; Önceki</span>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <span class="pagination-btn active">{{ num }}</span>
+      {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <a href="?page={{ num }}{% if query_params %}&{{ query_params }}{% endif %}" class="pagination-btn">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if query_params %}&{{ query_params }}{% endif %}" class="pagination-btn nav-btn" title="Sonraki Sayfa">
+        Sonraki &rarr;
+      </a>
+    {% else %}
+      <span class="pagination-btn nav-btn disabled">Sonraki &rarr;</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

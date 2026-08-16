@@ -1,0 +1,205 @@
+/**
+ * ZK Remote Operations Center - Device Inventory & Management Styles
+ */
+
+.devices-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.devices-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.devices-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.devices-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Metric Cards Grid */
+.dash-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.dash-metric-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dash-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.dash-metric-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.dash-metric-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.dash-metric-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* Table Toolbar & Filters */
+.table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.table-toolbar {
+  padding: 12px 18px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-input-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  height: 38px;
+  min-width: 260px;
+  transition: all var(--transition-fast);
+}
+
+.search-input-box:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.form-input-clean {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+  width: 100%;
+  font-family: inherit;
+}
+
+.filter-select {
+  height: 38px;
+  padding: 0 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+
+.filter-select:focus {
+  border-color: var(--accent-primary);
+}
+
+/* Data Table Styling */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.data-table th {
+  background: var(--bg-secondary);
+  padding: 11px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.data-table tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--bg-card-hover);
+}
+
+/* Action button icons */
+.action-btn-group {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.btn-icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: var(--bg-primary);
+}

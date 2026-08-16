@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}ZK Remote Operations Center{% endblock %}</title>
+  <meta name="description" content="Ziraat Katılım — Bilgi Güvenliği Remote Operations Center">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/png" href="{% static 'img/zk.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'img/zk.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/zk.png' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Core Icons & Charts -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Design System & Component Styles -->
+  <link rel="stylesheet" href="{% static 'css/variables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+  <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+  <link rel="stylesheet" href="{% static 'css/theme.css' %}?v={% now 'U' %}">
+
+  <!-- Zero-Flicker Theme + Sidebar Persistence -->
+  <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('zk_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        if (localStorage.getItem('zk_sidebar_collapsed') === 'true') {
+          document.documentElement.classList.add('sidebar-collapsed');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  {% block extra_head %}{% endblock %}
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    {% include "partials/_sidebar.html" %}
+
+    <div class="main">
+      {% include "partials/_topbar.html" %}
+
+      <div class="content">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert-box {% if message.tags == 'error' %}bad{% elif message.tags == 'warning' %}warn{% else %}good{% endif %}" style="margin-bottom:16px;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Floating Popover Portal (Collapsed Sidebar) -->
+  <div id="globalMiniFlyoutPortal" class="global-floating-popover"></div>
+
+  <!-- Sliding Detail Drawer -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <strong id="drawer-title">DETAY PANELİ</strong>
+      <button type="button" class="btn" style="padding:4px 12px;font-size:12px;" onclick="closeDrawer()">✕ Kapat</button>
+    </div>
+    <div class="drawer-body" id="drawer-body-content"></div>
+  </div>
+
+  <script src="{% static 'js/core/api.js' %}"></script>
+  <script src="{% static 'js/core/components.js' %}"></script>
+  <script src="{% static 'js/core/theme.js' %}"></script>
+  <script src="{% static 'js/modules/command-palette.js' %}"></script>
+  <script src="{% static 'js/modules/notifications.js' %}"></script>
+  <script src="{% static 'js/app.js' %}?v={% now 'U' %}"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+    });
+  </script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

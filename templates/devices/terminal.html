@@ -1,0 +1,1060 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Canlı Terminal &amp; Çoklu Düğüm Konsolu | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ═════════════════════════════════════════════════════════════════════════
+     Enterprise Dynamic Multi-Terminal & Windows-Style Docking UX
+     ═════════════════════════════════════════════════════════════════════════ */
+  .term-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--header-height) - 34px);
+    width: 100%;
+    background: transparent;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 13px;
+    transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: visible;
+  }
+
+  /* Fullscreen with smooth zoom/expand animation */
+  .term-container.fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background: #08090C !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    border-radius: 0 !important;
+    animation: termScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes termScaleIn {
+    0% { opacity: 0.85; transform: scale(0.985); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ─── Top Control Bar (Overflow Visible for Floating Menus) ─── */
+  .term-topbar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 10px 10px 0 0;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    z-index: 500;
+    position: relative;
+    overflow: visible !important;
+  }
+
+  /* ─── 1. Luxury Server Switcher on the Far Left (Like Files Page) ─── */
+  .term-server-switcher {
+    position: relative;
+    flex-shrink: 0;
+    z-index: 600;
+  }
+
+  .term-server-switcher-btn {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .term-server-switcher-btn:hover,
+  .term-server-switcher-btn.active {
+    border-color: var(--zk-red, #E30613);
+    background: var(--bg-card);
+    box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.12);
+  }
+
+  .term-server-icon {
+    width: 26px;
+    height: 26px;
+    padding: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+
+  .term-server-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .term-server-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+
+  .term-server-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+
+  .term-server-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 380px;
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 12px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    z-index: 999999 !important;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: dropdownIn 0.15s ease-out;
+  }
+
+  [data-theme="dark"] .term-server-menu {
+    background: #111827 !important;
+    border: 1px solid #374151 !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75) !important;
+  }
+
+  .term-server-menu.show {
+    display: flex !important;
+  }
+
+  @keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .term-server-search {
+    padding: 10px 14px;
+    border-bottom: 1px solid #E2E8F0;
+    background: #F8FAFC;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  [data-theme="dark"] .term-server-search {
+    border-bottom: 1px solid #374151;
+    background: #1F2937;
+  }
+
+  .term-server-search input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12.5px;
+    color: #0F172A;
+    font-weight: 600;
+  }
+
+  [data-theme="dark"] .term-server-search input {
+    color: #F9FAFB;
+  }
+
+  .term-server-search input::placeholder {
+    color: #94A3B8;
+  }
+
+  .term-server-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: #FFFFFF;
+  }
+
+  [data-theme="dark"] .term-server-list {
+    background: #111827;
+  }
+
+  .term-server-select-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.12s ease;
+  }
+
+  .term-server-select-item:hover {
+    background: #F1F5F9;
+  }
+
+  [data-theme="dark"] .term-server-select-item:hover {
+    background: #1F2937;
+  }
+
+  /* ─── 2. Draggable Dynamic Terminal Tabs Strip ─── */
+  .term-tabs-scroll {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
+    max-width: calc(100% - 460px);
+    padding: 2px 0;
+  }
+
+  .term-tab-item {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: grab;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .term-tab-item:active {
+    cursor: grabbing;
+  }
+
+  .term-tab-item.is-dragging {
+    opacity: 0.4;
+    border-style: dashed;
+    border-color: var(--zk-red, #E30613);
+  }
+
+  .term-tab-item:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-primary);
+  }
+
+  .term-tab-item.active {
+    background: var(--bg-card);
+    border-color: var(--zk-red, #E30613);
+    color: var(--zk-red, #E30613);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .term-tab-label {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .term-tab-close-btn {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.12s ease;
+    margin-left: 2px;
+  }
+
+  .term-tab-close-btn:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+  }
+
+  /* The Real Terminal "+" Add Button */
+  .term-add-tab-btn {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: rgba(227, 6, 19, 0.08);
+    border: 1px dashed var(--zk-red, #E30613);
+    color: var(--zk-red, #E30613);
+    font-size: 11.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .term-add-tab-btn:hover {
+    background: var(--zk-red, #E30613);
+    color: #ffffff;
+    border-style: solid;
+  }
+
+  /* ─── 3. Right Tools ─── */
+  .term-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .term-btn {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .term-btn:hover {
+    background: var(--sidebar-hover);
+    border-color: var(--text-muted);
+  }
+
+  .term-btn.recording {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #EF4444;
+    color: #EF4444;
+    animation: pulseRecording 1.5s infinite;
+  }
+
+  @keyframes pulseRecording {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+
+  /* ─── Grid Container & Windows Docking ─── */
+  .term-grid-container {
+    flex: 1;
+    display: grid;
+    gap: 4px;
+    background: #08090C;
+    border-left: 1px solid var(--border-default);
+    border-right: 1px solid var(--border-default);
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+  }
+
+  /* ─── Drag & Drop Docking Overlay Indicator ─── */
+  .term-dock-overlay {
+    position: absolute;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 34px;
+    pointer-events: none;
+    z-index: 400;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .term-dock-preview {
+    position: absolute;
+    background: rgba(227, 6, 19, 0.16);
+    border: 2px dashed var(--zk-red, #E30613);
+    border-radius: 8px;
+    transition: all 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 30px rgba(227, 6, 19, 0.35);
+  }
+
+  .term-dock-hint {
+    background: rgba(11, 14, 20, 0.94);
+    border: 1px solid var(--border-default);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #FFFFFF;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    z-index: 405;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ─── Individual Terminal Pane ─── */
+  .term-pane {
+    display: flex;
+    flex-direction: column;
+    background: #0B0E14;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #161B28;
+    transition: border-color 0.15s ease;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .term-pane.active-pane {
+    border-color: rgba(227, 6, 19, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(227, 6, 19, 0.3);
+  }
+
+  .term-pane-header {
+    background: #111621;
+    border-bottom: 1px solid #1A2234;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+    user-select: none;
+    cursor: grab;
+  }
+
+  .term-pane-header:active {
+    cursor: grabbing;
+  }
+
+  .term-pane-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #E2E8F0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .term-pane-badge {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .badge-online { background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .badge-warning { background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3); }
+  .badge-offline { background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+  .term-pane-latency {
+    font-size: 10.5px;
+    color: #10B981;
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* In-Pane Action Icons (Sağa Böl, Alta Böl, Sekme Yap, Kapat) */
+  .term-pane-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .term-pane-tool-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .term-pane-tool-btn:hover {
+    background: #1E2638;
+    color: #FFFFFF;
+  }
+
+  .term-pane-tool-btn.close:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #EF4444;
+  }
+
+  .term-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-size: inherit;
+    line-height: 1.45;
+    color: #D1D5DB;
+  }
+
+  .term-prompt-line {
+    font-weight: 700;
+    margin-bottom: 2px;
+    word-break: break-all;
+    font-size: inherit;
+  }
+
+  .term-prompt-linux { color: #22C55E; }
+  .term-prompt-windows { color: #38BDF8; }
+
+  .term-stdout-block {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1.45;
+    color: #E2E8F0;
+  }
+
+  .term-active-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .term-active-prompt {
+    font-weight: 700;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  .term-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0;
+    margin: 0;
+    caret-color: #22C55E;
+  }
+
+  /* ─── Bottom OS-Aware Quick Chips Bar ─── */
+  .term-chips-bar {
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--border-default);
+    border-radius: 0 0 10px 10px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .term-chip {
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: all 0.12s ease;
+  }
+
+  .term-chip:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+    background: var(--sidebar-hover);
+  }
+
+  /* ─── Broadcast Matrix Grid ─── */
+  .broadcast-target-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+
+  .broadcast-target-card:hover {
+    background: var(--sidebar-hover);
+  }
+
+  .broadcast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    max-height: 380px;
+    overflow-y: auto;
+  }
+
+  .broadcast-result-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .broadcast-result-card.success { border-left: 3px solid #10B981; }
+  .broadcast-result-card.error { border-left: 3px solid #EF4444; }
+
+  .broadcast-result-header {
+    background: var(--bg-surface);
+    padding: 6px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .broadcast-result-output {
+    padding: 8px 10px;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    max-height: 160px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    background: #090B10;
+    color: #E2E8F0;
+  }
+
+  /* ─── Snippets Drawer ─── */
+  .snippet-drawer {
+    position: fixed;
+    top: calc(var(--header-height) + 40px);
+    right: 20px;
+    width: 380px;
+    max-height: calc(100vh - 120px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .snippet-drawer.show { display: flex; }
+
+  .snippet-card {
+    padding: 8px 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .snippet-card:hover {
+    border-color: var(--zk-red, #E30613);
+    background: var(--sidebar-hover);
+  }
+
+  .snippet-cmd-preview {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .snippet-cat-btn {
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .snippet-cat-btn.active {
+    background: var(--zk-red, #E30613);
+    color: #fff;
+    border-color: var(--zk-red, #E30613);
+  }
+
+  /* ─── Themes ─── */
+  .term-theme-matrix .term-pane { background: #020D04 !important; color: #00FF66 !important; }
+  .term-theme-matrix .term-body { color: #00FF66 !important; }
+  .term-theme-matrix .term-prompt-linux { color: #00FF66 !important; }
+  .term-theme-matrix .term-input { color: #00FF66 !important; caret-color: #00FF66 !important; }
+
+  .term-theme-dracula .term-pane { background: #282A36 !important; color: #F8F8F2 !important; }
+  .term-theme-dracula .term-prompt-linux { color: #50FA7B !important; }
+  .term-theme-dracula .term-prompt-windows { color: #8BE9FD !important; }
+
+  .term-theme-monokai .term-pane { background: #272822 !important; color: #F8F8F2 !important; }
+  .term-theme-monokai .term-prompt-linux { color: #A6E22E !important; }
+  .term-theme-monokai .term-prompt-windows { color: #66D9EF !important; }
+
+  .term-theme-nord .term-pane { background: #2E3440 !important; color: #D8DEE9 !important; }
+  .term-theme-nord .term-prompt-linux { color: #A3BE8C !important; }
+  .term-theme-nord .term-prompt-windows { color: #88C0D0 !important; }
+
+  .term-theme-cyberpunk .term-pane { background: #0A0A1E !important; color: #00F0FF !important; }
+  .term-theme-cyberpunk .term-prompt-linux { color: #FFE600 !important; }
+  .term-theme-cyberpunk .term-prompt-windows { color: #FF0055 !important; }
+
+  .term-theme-amber .term-pane { background: #120A00 !important; color: #FFB000 !important; }
+  .term-theme-amber .term-body { color: #FFB000 !important; }
+  .term-theme-amber .term-input { color: #FFB000 !important; caret-color: #FFB000 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="term-container" id="terminalContainer">
+
+  <!-- 1. Top Session Controls Bar with Real Terminal Dynamic Tab Bar -->
+  <div class="term-topbar">
+    <!-- 1.1 Luxury Server Switcher on the Far Left (Like Files Page) -->
+    <div class="term-server-switcher" id="termServerSwitcher">
+      <button type="button" class="term-server-switcher-btn" id="termServerSwitcherBtn" onclick="TerminalApp.toggleServerSwitcherMenu(event)" title="Aktif Terminalin Bağlı Olduğu Sunucuyu Değiştir">
+        <div class="term-server-icon" id="term-active-server-icon">
+          <img src="{% static 'img/pardus.png' %}" style="width: 100%; height: 100%; object-fit: contain;" alt="OS">
+        </div>
+        <div class="term-server-text">
+          <div class="term-server-title" id="term-active-server-title">Yerel Host</div>
+          <div class="term-server-sub" id="term-active-server-sub">127.0.0.1 &bull; Localhost</div>
+        </div>
+        <i data-lucide="chevron-down" style="width: 13px; height: 13px; color: var(--text-muted);"></i>
+      </button>
+
+      <div class="term-server-menu" id="termServerMenu">
+        <div class="term-server-search">
+          <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+          <input type="text" id="term-server-search-input" placeholder="Cihaz, IP veya Sicil ara..." oninput="TerminalApp.filterServerSwitcherMenu(this.value)">
+        </div>
+        <div class="term-server-list" id="termServerList">
+          <!-- Populated via TerminalApp -->
+        </div>
+        <!-- Bottom Quick Connect Action Button -->
+        <div style="padding: 8px 10px; border-top: 1px solid var(--border-default); background: var(--bg-secondary);">
+          <button type="button" class="btn btn-primary btn-sm" style="width: 100%; font-size: 12.5px; font-weight: 700; border-radius: 8px; justify-content: center; gap: 8px; height: 38px;" onclick="TerminalApp.openQuickConnectModal(); TerminalApp.toggleServerSwitcherMenu();">
+            <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+            <span>Yeni Düğüm / SSH Bağla</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1.2 Dynamic Draggable Terminal Tabs Strip -->
+    <div class="term-tabs-scroll" id="termTabsList">
+      <!-- Populated dynamically via TerminalApp (Tabs + "+" button) -->
+    </div>
+
+    <!-- 1.3 Right Controls -->
+    <div class="term-controls-right">
+      <!-- Live Recording Badge -->
+      <div id="term-rec-indicator" style="display: none; align-items: center; gap: 6px; background: rgba(239, 68, 68, 0.15); color: #EF4444; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3);">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #EF4444; animation: pulseRecording 1s infinite;"></span>
+        <span id="recTimerText">REC 00:00</span>
+      </div>
+
+      <button type="button" class="term-btn" onclick="TerminalApp.openBroadcastModal()" title="Toplu Komut Yayını (Ctrl+Shift+B)">
+        <i data-lucide="radio" style="width: 14px; height: 14px; color: #38BDF8;"></i>
+        <span>Toplu Yayın</span>
+      </button>
+
+      <button type="button" class="term-btn" onclick="TerminalApp.toggleSnippetDrawer()" title="Kurumsal Komut Kütüphanesi (Ctrl+Shift+S)">
+        <i data-lucide="book-open" style="width: 14px; height: 14px; color: #F59E0B;"></i>
+        <span>Snippet'lar</span>
+      </button>
+
+      <button type="button" class="term-btn" id="termRecBtn" onclick="TerminalApp.toggleSessionRecording()" title="SIEM Canlı Oturum Kaydedici (Ctrl+Shift+R)">
+        <i data-lucide="circle-dot" style="width: 14px; height: 14px;"></i>
+        <span>Kayıt</span>
+      </button>
+
+      <button type="button" class="term-btn" onclick="TerminalApp.openThemeModal()" title="Terminal Temaları ve Fontlar">
+        <i data-lucide="palette" style="width: 14px; height: 14px;"></i>
+      </button>
+
+      <button type="button" class="term-btn" onclick="TerminalApp.adjustFontSize(-1)" title="Yazı Boyutunu Küçült">
+        <i data-lucide="zoom-out" style="width: 14px; height: 14px;"></i>
+      </button>
+
+      <button type="button" class="term-btn" onclick="TerminalApp.adjustFontSize(1)" title="Yazı Boyutunu Büyüt">
+        <i data-lucide="zoom-in" style="width: 14px; height: 14px;"></i>
+      </button>
+
+      <button type="button" class="term-btn" onclick="TerminalApp.toggleFullscreen()" title="Tam Ekran Modu">
+        <i data-lucide="maximize-2" style="width: 14px; height: 14px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Dynamic Terminal Container & Drag Dock Overlay -->
+  <div class="term-grid-container" id="terminalGridContainer">
+    <!-- Populated dynamically via TerminalApp.addNewTerminal() -->
+  </div>
+
+  <!-- Docking Visual Overlay Indicator -->
+  <div id="term-dock-overlay" class="term-dock-overlay">
+    <div id="term-dock-preview" class="term-dock-preview"></div>
+    <div class="term-dock-hint" id="term-dock-hint">
+      <i data-lucide="layout-grid" style="width:16px;height:16px;color:var(--zk-red, #E30613);"></i>
+      <span id="term-dock-hint-text">Pencereyi kenetlemek için kenarlara bırakın</span>
+    </div>
+  </div>
+
+  <!-- 3. Bottom OS-Aware Fast Snippets Bar -->
+  <div class="term-chips-bar">
+    <span style="font-size:10.5px;font-weight:700;color:var(--text-muted);white-space:nowrap;">HIZLI KOMUTLAR:</span>
+    <div id="termChipsList" style="display:flex;align-items:center;gap:6px;transition:all 0.16s ease;"></div>
+  </div>
+
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════════════
+     4. Modals & Drawers
+     ═════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Toplu Komut Yayını (Broadcast Terminal) Modalı -->
+<div id="broadcast-terminal-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 840px; border-radius: 12px; overflow: hidden;">
+    <div class="modal-header" style="padding: 14px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i data-lucide="radio" style="width: 20px; height: 20px; color: #38BDF8;"></i>
+        <div>
+          <h3 class="modal-title" style="font-size: 15px; font-weight: 700;">Toplu Komut Yayını (Multi-Exec Broadcast)</h3>
+          <div style="font-size: 11px; color: var(--text-muted);">Seçili tüm Linux ve Windows düğümlerine tek tıkla eşzamanlı komut gönderin.</div>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('broadcast-terminal-modal')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="modal-body" style="padding: 18px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-surface);">
+      <!-- Target Servers List -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Hedef Sunucular:</span>
+          <button type="button" class="btn btn-secondary btn-sm" style="font-size: 10.5px; height: 22px; padding: 0 6px;" onclick="TerminalApp.toggleBroadcastCheckAll()">Tümünü Seç / Kaldır</button>
+        </div>
+        <div id="broadcast-targets-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Command Input -->
+      <form onsubmit="TerminalApp.executeBroadcast(event)" style="display: flex; gap: 8px;">
+        <input type="text" id="broadcast-cmd-input" class="form-input" placeholder="Örn: uptime, df -h, free -m, Get-Service..." style="font-family: var(--font-mono); font-size: 13px;" required>
+        <button type="submit" id="broadcast-submit-btn" class="btn btn-primary" style="font-weight: 700; white-space: nowrap; gap: 6px;">
+          <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+          <span>Toplu Yayını Başlat</span>
+        </button>
+      </form>
+
+      <!-- Results Matrix Output -->
+      <div id="broadcast-results-matrix"></div>
+    </div>
+
+    <div class="modal-footer" style="padding: 10px 18px; background: var(--bg-card); border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="Modal.close('broadcast-terminal-modal')">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Snippet Drawer -->
+<div class="snippet-drawer" id="term-snippet-drawer">
+  <div style="padding: 12px 16px; background: var(--bg-surface); border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i data-lucide="book-open" style="width: 16px; height: 16px; color: #F59E0B;"></i>
+      <strong style="font-size: 13px;" id="snippet-drawer-title">Komut Snippet Kütüphanesi</strong>
+    </div>
+    <button type="button" onclick="TerminalApp.toggleSnippetDrawer()" style="background: none; border: none; cursor: pointer; color: var(--text-muted);"><i data-lucide="x" style="width: 16px; height: 16px;"></i></button>
+  </div>
+
+  <!-- Category Filter Pills (Dynamically populated by OS) -->
+  <div id="snippet-cat-buttons" style="padding: 8px 12px; display: flex; gap: 6px; overflow-x: auto; background: var(--bg-card); border-bottom: 1px solid var(--border-default);">
+    <!-- Populated by TerminalApp -->
+  </div>
+
+  <!-- Snippets List -->
+  <div id="snippet-drawer-list" style="padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; max-height: 480px;"></div>
+</div>
+
+<!-- SIEM Session Replay Modal -->
+<div id="session-replay-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 720px; border-radius: 12px; overflow: hidden;">
+    <div class="modal-header" style="padding: 14px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i data-lucide="play-circle" style="width: 20px; height: 20px; color: #10B981;"></i>
+        <div>
+          <h3 class="modal-title" style="font-size: 15px; font-weight: 700;">SIEM Terminal Oturum Oynatıcısı &amp; Denetim İzi</h3>
+          <div style="font-size: 11px; color: var(--text-muted);">Kaydedilen terminal oturumunu zaman damgasıyla adım adım izleyin.</div>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('session-replay-modal')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="modal-body" style="padding: 16px; background: var(--bg-surface); display: flex; flex-direction: column; gap: 12px;">
+      <!-- Timeline Scrubber -->
+      <div style="width: 100%; height: 6px; background: var(--bg-card); border-radius: 99px; overflow: hidden;">
+        <div id="replay-progress-bar" style="width: 0%; height: 100%; background: #10B981; transition: width 0.1s linear;"></div>
+      </div>
+
+      <!-- Playback Canvas Screen -->
+      <div id="replay-screen" style="height: 320px; background: #08090C; border: 1px solid var(--border-default); border-radius: 8px; padding: 12px; font-family: var(--font-mono); font-size: 12px; overflow-y: auto;"></div>
+
+      <!-- Playback Controls -->
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="btn btn-primary btn-sm" id="replayPlayBtn" onclick="TerminalApp.playSessionReplay()"><i data-lucide="play" style="width: 14px; height: 14px;"></i> Başlat</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="TerminalApp.resetSessionReplay()"><i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Sıfırla</button>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="TerminalApp.exportSessionJSON()"><i data-lucide="download" style="width: 14px; height: 14px;"></i> JSON Denetim İndir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Terminal Theme & Font Modal -->
+<div id="terminal-theme-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px; border-radius: 12px; overflow: hidden;">
+    <div class="modal-header" style="padding: 14px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i data-lucide="palette" style="width: 20px; height: 20px; color: var(--zk-red, #E30613);"></i>
+        <h3 class="modal-title" style="font-size: 15px; font-weight: 700;">Terminal Temaları &amp; Yazı Tipi</h3>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('terminal-theme-modal')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="modal-body" style="padding: 18px; background: var(--bg-surface); display: flex; flex-direction: column; gap: 14px;">
+      <div>
+        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 8px;">Renk Teması Seçimi</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" style="justify-content: flex-start; gap: 8px;" onclick="TerminalApp.setTheme('default')">
+            <span style="width:12px;height:12px;border-radius:50%;background:#0B0E14;border:1px solid #fff;"></span> Default Dark
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" style="justify-content: flex-start; gap: 8px;" onclick="TerminalApp.setTheme('matrix')">
+            <span style="width:12px;height:12px;border-radius:50%;background:#00FF66;"></span> Matrix Green
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" style="justify-content: flex-start; gap: 8px;" onclick="TerminalApp.setTheme('dracula')">
+            <span style="width:12px;height:12px;border-radius:50%;background:#BD93F9;"></span> Dracula Dark
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" style="justify-content: flex-start; gap: 8px;" onclick="TerminalApp.setTheme('monokai')">
+            <span style="width:12px;height:12px;border-radius:50%;background:#A6E22E;"></span> Monokai Pro
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" style="justify-content: flex-start; gap: 8px;" onclick="TerminalApp.setTheme('nord')">
+            <span style="width:12px;height:12px;border-radius:50%;background:#88C0D0;"></span> Nord Frost
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" style="justify-content: flex-start; gap: 8px;" onclick="TerminalApp.setTheme('cyberpunk')">
+            <span style="width:12px;height:12px;border-radius:50%;background:#00F0FF;"></span> Cyberpunk Neon
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" style="justify-content: flex-start; gap: 8px;" onclick="TerminalApp.setTheme('amber')">
+            <span style="width:12px;height:12px;border-radius:50%;background:#FFB000;"></span> Retro Amber
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px;">Yazı Tipi Ailesi (Monospace Font)</label>
+        <select class="form-input" onchange="TerminalApp.setFontFamily(this.value)">
+          <option value="JetBrains Mono">JetBrains Mono (Önerilen)</option>
+          <option value="Fira Code">Fira Code</option>
+          <option value="Cascadia Code">Cascadia Code</option>
+          <option value="Consolas">Consolas</option>
+          <option value="Courier New">Courier New</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding: 10px 18px; background: var(--bg-card); border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="Modal.close('terminal-theme-modal')">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden node menu reference for populating targets -->
+<div id="termNodeMenu" style="display: none;">
+  <div class="zk-select-item" data-id="local" data-hostname="{{ host_hostname }}" data-ip="{{ host_ip }}" data-os="{% if host_os == 'Windows' %}WINDOWS{% else %}LINUX{% endif %}" data-username="Operator"></div>
+  {% for d in devices %}
+    <div class="zk-select-item" data-id="{{ d.id }}" data-hostname="{{ d.hostname }}" data-ip="{{ d.ip_address }}" data-os="{{ d.operating_system }}" data-username="{{ d.username }}" data-port="{{ d.port }}" data-personnel="{{ d.personnel_number }}"></div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/modules/terminal.js' %}?v={% now 'U' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    TerminalApp.init(
+      '{{ selected_device.id|default:"local" }}',
+      '{{ host_os|escapejs }}',
+      '{{ host_hostname|escapejs }}',
+      '{{ host_ip|escapejs }}',
+      '{{ host_build_str|escapejs }}'
+    );
+  });
+</script>
+{% endblock %}

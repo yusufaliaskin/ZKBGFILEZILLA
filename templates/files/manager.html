@@ -1,0 +1,705 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Uzak Dosya Yöneticisi | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/file-manager.css' %}?v={% now 'U' %}">
+<style>
+  .fm-path-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .fm-os-shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .fm-path-address-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 0 8px 0 12px;
+    cursor: text;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  .fm-path-address-bar:hover {
+    border-color: var(--text-muted);
+  }
+  .fm-path-address-bar.editing {
+    border-color: var(--zk-red, #E30613);
+    box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.15);
+  }
+  .fm-breadcrumbs-container {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .fm-breadcrumbs-container::-webkit-scrollbar { display: none; }
+  .breadcrumb-crumb {
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .breadcrumb-crumb:hover {
+    background: var(--sidebar-hover);
+    color: var(--zk-red, #E30613);
+  }
+  .breadcrumb-sep {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    opacity: 0.6;
+    user-select: none;
+  }
+  .fm-path-input-direct {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 12.5px;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    width: 100%;
+    display: none;
+  }
+  .fm-path-go-btn {
+    height: 24px;
+    width: 24px;
+    border-radius: 5px;
+    border: none;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .fm-path-go-btn:hover {
+    background: var(--zk-red, #E30613);
+    color: #fff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fm-layout" id="fm-layout-container" {% if selected_device %}data-device-id="{{ selected_device.id }}"{% endif %}>
+  <!-- Top Bar: Custom Device Switcher + Executive Sync + Telemetry Badge -->
+  <div class="fm-top-bar">
+    <!-- 1. Custom Interactive Device Switcher -->
+    <div class="custom-device-dropdown" id="custom-device-dropdown">
+      <button class="custom-device-btn" id="custom-device-btn" type="button" onclick="FileManager.toggleDeviceDropdown(event)">
+        <div class="device-btn-icon" id="device-btn-icon" style="width: 28px; height: 28px; padding: 3px; display: flex; align-items: center; justify-content: center; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 7px; flex-shrink: 0;">
+          {% if selected_device %}
+            <img src="{% static 'img/' %}{% if selected_device.is_windows %}windows.png{% else %}pardus.png{% endif %}" alt="OS" style="width: 100%; height: 100%; object-fit: contain;">
+          {% else %}
+            <i data-lucide="server" style="width: 15px; height: 15px;"></i>
+          {% endif %}
+        </div>
+        <div class="device-btn-details">
+          <div class="device-btn-title" id="device-btn-title">
+            {% if selected_device %}{{ selected_device.hostname }}{% else %}Lütfen Bir Düğüm / Sunucu Seçiniz{% endif %}
+          </div>
+          <div class="device-btn-sub" id="device-btn-sub">
+            {% if selected_device %}{{ selected_device.ip_address }} • Sicil: {{ selected_device.personnel_number }}{% else %}Bağlantı için cihaz seçimi bekleniyor...{% endif %}
+          </div>
+        </div>
+        <i data-lucide="chevron-down" class="device-btn-chevron" id="device-btn-chevron"></i>
+      </button>
+
+      <!-- Dropdown Floating Menu -->
+      <div class="custom-device-menu" id="custom-device-menu">
+        <div class="device-menu-search">
+          <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+          <input type="text" id="device-menu-search-input" placeholder="Cihaz, IP veya Sicil ara..." oninput="FileManager.filterDeviceMenu(this.value)">
+        </div>
+
+        <div class="device-menu-list" id="device-menu-list">
+          {% for d in devices %}
+          <div class="device-menu-item {% if selected_device and selected_device.id == d.id %}selected{% endif %}"
+               data-id="{{ d.id }}"
+               data-hostname="{{ d.hostname }}"
+               data-ip="{{ d.ip_address }}"
+               data-personnel="{{ d.personnel_number }}"
+               data-os="{{ d.operating_system }}"
+               data-os-display="{{ d.get_operating_system_display }}"
+               onclick="FileManager.selectDevice('{{ d.id }}')">
+            <div class="device-item-icon" style="width: 28px; height: 28px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; padding: 3px; border: 1px solid var(--border-default);">
+              <img src="{% static 'img/' %}{% if d.is_windows %}windows.png{% else %}pardus.png{% endif %}" alt="OS" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            <div class="device-item-info">
+              <div class="device-item-name">
+                {{ d.hostname }}
+                <span class="badge {% if d.is_windows %}blue{% else %}green{% endif %}" style="font-size: 9px; padding: 1px 5px;">{% if d.is_windows %}WIN{% else %}PARDUS{% endif %}</span>
+              </div>
+              <div class="device-item-sub">{{ d.ip_address }} • Sicil: {{ d.personnel_number }}</div>
+            </div>
+            <div class="device-item-status">
+              <span class="status-dot {% if d.status == 'ONLINE' %}status-online{% elif d.status == 'WARNING' %}status-warning{% else %}status-offline{% endif %}"></span>
+            </div>
+          </div>
+          {% empty %}
+          <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px;">Kayıtlı aktif cihaz bulunmuyor</div>
+          {% endfor %}
+        </div>
+
+        <!-- Quick Add Host Button inside Menu -->
+        <div style="padding: 6px; border-top: 1px solid var(--border-color); background-color: var(--bg-secondary);">
+          <button type="button" class="btn btn-primary btn-sm" style="width: 100%; font-size: 12px; justify-content: center;" onclick="FileManager.openQuickConnectModal()">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> Yeni Düğüm / SSH Bağla
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Executive Sync / Refresh Button -->
+    <button id="fz-btn-connect" class="btn-executive-sync" onclick="FileManager.loadDirectory()" title="Bağlantıyı Yenile / Senkronize Et">
+      <i data-lucide="refresh-cw" class="sync-icon" style="width: 14px; height: 14px;"></i>
+      <span>Bağlan / Yenile</span>
+    </button>
+
+    <!-- Transfer Hub Shortcut Button -->
+    <a href="{% if selected_device %}{% url 'files:device_transfer' selected_device.id %}{% else %}{% url 'files:transfer' %}{% endif %}" class="btn btn-secondary btn-sm" style="height:42px;gap:8px;" title="ZKFileZilla Çift Panelli Veri Aktarım Merkezine Git">
+      <i data-lucide="arrow-left-right" style="width: 15px; height: 15px; color: var(--accent-blue);"></i>
+      <span>ZKFileZilla Aktarım Merkezi</span>
+    </a>
+
+    <!-- 3. Telemetry Connection LED Badge -->
+    <div class="telemetry-badge-container" style="margin-left: auto;">
+      <div class="telemetry-led-pulse" id="fz-status-led" style="{% if not selected_device %}background-color: var(--text-muted); box-shadow: none;{% endif %}"></div>
+      <span class="telemetry-protocol" id="fz-status-text">
+        {% if selected_device %}
+          {% if selected_device.is_windows %}Windows (WinRM/SFTP){% else %}Linux (SSH/SFTP){% endif %}
+        {% else %}
+          Bağlantı Bekleniyor
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Windows Explorer Style Interactive Address Bar & Breadcrumbs -->
+  <div class="fm-path-row">
+    <!-- OS Shortcuts (Windows Drives vs Linux Paths) -->
+    <div id="fm-os-shortcuts" class="fm-os-shortcuts">
+      <!-- Populated dynamically via file-manager.js -->
+    </div>
+
+    <!-- Interactive Address Bar (Breadcrumbs + Editable Input) -->
+    <div class="fm-path-address-bar" id="fm-address-bar" onclick="FileManager.enableDirectPathEdit(event)">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;color:var(--text-muted);">
+        <i data-lucide="folder-open" style="width:16px;height:16px;color:var(--zk-red, #E30613);"></i>
+      </div>
+
+      <!-- Interactive Clickable Breadcrumbs (Normal State) -->
+      <div id="fm-breadcrumbs" class="fm-breadcrumbs-container">
+        <span class="breadcrumb-crumb" onclick="event.stopPropagation();FileManager.navigateTo('/')">/</span>
+      </div>
+
+      <!-- Editable Text Input (Shown when Address Bar is Clicked/Edited) -->
+      <input type="text" id="fm-direct-path" class="fm-path-input-direct" placeholder="/var/log veya C:\Users\..." value="/" onkeydown="if(event.key==='Enter'){event.preventDefault();FileManager.applyDirectPath();}" onblur="FileManager.disableDirectPathEdit()">
+
+      <!-- Action Button (Go ->) -->
+      <button type="button" class="fm-path-go-btn" id="fm-path-go-btn" onclick="event.stopPropagation();FileManager.applyDirectPath()" title="Bu Dizine Git (Enter)">
+        <i data-lucide="arrow-right" style="width:13px;height:13px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toolbar: Navigation + Actions + Search -->
+  <div class="fm-toolbar">
+    <div class="fm-toolbar-group">
+      <button id="fm-btn-back" class="fm-tool-icon-btn" title="Geri" disabled>
+        <i data-lucide="arrow-left"></i>
+      </button>
+      <button id="fm-btn-forward" class="fm-tool-icon-btn" title="İleri" disabled>
+        <i data-lucide="arrow-right"></i>
+      </button>
+      <button id="fm-btn-up" class="fm-tool-icon-btn" title="Üst Dizine Çık (..)">
+        <i data-lucide="arrow-up"></i>
+      </button>
+      <button id="fm-btn-refresh" class="fm-tool-icon-btn" title="Yenile">
+        <i data-lucide="refresh-cw"></i>
+      </button>
+    </div>
+
+    <!-- In-Table Search Filter -->
+    <div style="display: flex; align-items: center; position: relative;">
+      <i data-lucide="search" style="width: 14px; height: 14px; position: absolute; left: 10px; color: var(--text-muted);"></i>
+      <input type="text" id="fm-filter-input" placeholder="Dosya adı filtrele..."
+             style="height: 32px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); padding: 0 10px 0 30px; font-size: 12.5px; outline: none; width: 200px;">
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="fm-toolbar-group" style="margin-left: auto;">
+      <button class="btn btn-secondary btn-sm" onclick="FileManager.openGrepModal()" title="Dizin İçindeki Dosyalarda Metin / Regex Ara (Grep)">
+        <i data-lucide="search-code" style="width: 14px; height: 14px; color: #38BDF8;"></i> <span>Grep Ara</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="FileManager.openDiskUsageModal()" title="Dizin Disk Alanı ve Boyut Isı Haritası">
+        <i data-lucide="pie-chart" style="width: 14px; height: 14px; color: #F59E0B;"></i> <span>Disk Analizi</span>
+      </button>
+      {% if is_operator %}
+        <button id="fm-btn-new-file" class="btn btn-secondary btn-sm" onclick="FileManager.promptNewFile()" title="Yeni Boş Dosya Oluştur">
+          <i data-lucide="file-plus" style="width: 14px; height: 14px;"></i> Yeni Dosya
+        </button>
+        <button id="fm-btn-mkdir" class="btn btn-secondary btn-sm" title="Yeni Klasör Oluştur">
+          <i data-lucide="folder-plus" style="width: 14px; height: 14px;"></i> Yeni Klasör
+        </button>
+        <button id="fm-btn-upload" class="btn btn-primary btn-sm" title="Dosya Yükle">
+          <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Dosya Yükle
+        </button>
+        <input type="file" id="fm-file-input" style="display: none;" multiple>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Main Body: File List + Right Inspector -->
+  <div class="fm-body">
+    <!-- File Table / Standby Container -->
+    <div class="fm-file-list-container" id="fm-file-list-container" style="position: relative;">
+      <!-- Drag & Drop SFTP Upload Overlay -->
+      <div class="fm-dropzone-overlay" id="fm-dropzone-overlay">
+        <div class="fm-dropzone-content">
+          <i data-lucide="upload-cloud" style="width: 44px; height: 44px; color: var(--zk-red, #E30613); margin-bottom: 10px;"></i>
+          <div style="font-size: 15px; font-weight: 800; color: var(--text-primary);">Dosyaları Buraya Bırakın</div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">Hedef dizine SFTP ile otomatik yüklenir</div>
+        </div>
+      </div>
+
+      {% if not selected_device %}
+        <div class="fm-standby-state" id="fm-standby-view">
+          <div class="fm-standby-hero-icon">
+            <i data-lucide="server" style="width: 32px; height: 32px;"></i>
+          </div>
+          <h3 style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Uzak Düğüm Seçimi Bekleniyor</h3>
+          <p style="font-size: 13px; color: var(--text-muted); max-width: 440px; margin-bottom: 20px; line-height: 1.5;">
+            Dosya sistemine erişmek ve işlem yapmak için üst menüden kayıtlı sunuculardan birini seçin veya yeni bir SSH bağlantısı tanımlayın.
+          </p>
+
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-primary" onclick="FileManager.toggleDeviceDropdown(event)">
+              <i data-lucide="list" style="width: 15px; height: 15px;"></i>
+              <span>Düğüm Menüsü</span>
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="FileManager.openQuickConnectModal()">
+              <i data-lucide="plus" style="width: 15px; height: 15px;"></i>
+              <span>Yeni SSH Düğümü Ekle</span>
+            </button>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Connecting State: SSH Handshake Animation -->
+      <div class="fm-connecting-state" id="fm-connecting-view" style="display:none;">
+        <div class="fm-connecting-spinner"></div>
+        <h3 id="fm-connecting-title" style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">SSH Bağlantısı Kuruluyor...</h3>
+        <p id="fm-connecting-target" style="font-size: 12px; color: var(--accent-blue); font-family: var(--font-mono); margin-bottom: 0;">ssh root@10.211.31.42</p>
+        <div class="fm-connect-steps" id="fm-connect-steps">
+          <div class="fm-connect-step" id="fm-step-auth">
+            <div class="fm-step-icon">1</div>
+            <span>SSH Kimlik Doğrulama</span>
+          </div>
+          <div class="fm-connect-step" id="fm-step-sftp">
+            <div class="fm-step-icon">2</div>
+            <span>SFTP Alt Sistemi Başlatılıyor</span>
+          </div>
+          <div class="fm-connect-step" id="fm-step-scan">
+            <div class="fm-step-icon">3</div>
+            <span>Kök Dizin Taranıyor</span>
+          </div>
+        </div>
+      </div>
+
+      <table class="fm-table" id="fm-main-table" style="{% if not selected_device %}display:none;{% endif %}">
+        <thead>
+          <tr>
+            <th style="width: 36px; text-align: center;">
+              <input type="checkbox" id="fm-select-all" onclick="FileManager.toggleSelectAll(this.checked)">
+            </th>
+            <th>İsim</th>
+            <th>Tür</th>
+            <th>Boyut</th>
+            <th>Değiştirilme</th>
+            <th>İzinler</th>
+            <th>Sahip</th>
+            <th style="width: 70px; text-align: right;">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody id="fm-table-body">
+          <!-- Populated dynamically via file-manager.js -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Right Side Inspector Panel -->
+    <div id="fm-inspector" class="fm-inspector">
+      <!-- Populated dynamically via file-manager.js -->
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Smart SSH Quick Connect & Add Device -->
+<div id="quick-connect-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 540px; border-radius: 14px; overflow: hidden;">
+    <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; color: #10B981;">
+          <i data-lucide="terminal" style="width: 18px; height: 18px;"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0;">Yeni Düğüm / SSH Bağlantısı Ekle</h3>
+          <span style="font-size: 11.5px; color: var(--text-muted);">Pardus/Linux veya Windows uç noktasına doğrudan bağlanın</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('quick-connect-modal')">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="quick-connect-form" onsubmit="FileManager.handleQuickConnectSubmit(event)">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; background: var(--bg-surface);">
+        
+        <!-- Visual OS Selector Cards -->
+        <div>
+          <input type="hidden" id="qc-os-select" value="LINUX">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div id="qc-card-linux" onclick="FileManager.selectQuickConnectOs('LINUX')" style="border: 2px solid #10B981; background: rgba(16, 185, 129, 0.06); border-radius: 8px; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
+              <img src="{% static 'img/pardus.png' %}" alt="Pardus" style="width: 32px; height: 32px; object-fit: contain;">
+              <div>
+                <strong style="font-size: 12px; color: var(--text-primary); display: block;">Pardus / Linux</strong>
+                <span style="font-size: 10px; color: var(--text-muted);">SSH / SFTP (Port 22)</span>
+              </div>
+            </div>
+            <div id="qc-card-windows" onclick="FileManager.selectQuickConnectOs('WINDOWS')" style="border: 1px solid var(--border-default); background: var(--bg-card); border-radius: 8px; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; opacity: 0.85;">
+              <img src="{% static 'img/windows.png' %}" alt="Windows" style="width: 32px; height: 32px; object-fit: contain;">
+              <div>
+                <strong style="font-size: 12px; color: var(--text-primary); display: block;">Windows</strong>
+                <span style="font-size: 10px; color: var(--text-muted);">WinRM (Port 3389)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Command Preview Pill -->
+        <div style="background: var(--bg-base); border: 1px solid var(--border-default); border-radius: 6px; padding: 8px 12px; font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+            <span style="color: #10B981; font-weight: 700;">$</span>
+            <span id="qc-cmd-preview" style="font-weight: 600;">ssh root@10.211.31.42 -p 22</span>
+          </div>
+          <span class="badge green font-bold" id="qc-os-badge" style="font-size: 9px; padding: 1px 6px;">PARDUS / SSH</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size: 11.5px; font-weight: 600;">Hedef IP / Sunucu Adresi *</label>
+            <input type="text" id="qc-ip" class="form-input" placeholder="Örn: 10.211.31.42" required oninput="FileManager.updateCmdPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 11.5px; font-weight: 600;">Kapı (Port)</label>
+            <input type="number" id="qc-port" class="form-input" value="22" placeholder="22" oninput="FileManager.updateCmdPreview()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 11.5px; font-weight: 600;">Kullanıcı / Sicil No / Hesap *</label>
+          <input type="text" id="qc-username" class="form-input" placeholder="Örn: root, admin, ya550047" required oninput="FileManager.updateCmdPreview()">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 11.5px; font-weight: 600;">Parola / Secret / SSH Key *</label>
+          <input type="password" id="qc-password" class="form-input" placeholder="••••••••" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 11px; color: var(--text-muted);">Sunucu Etiketi (Opsiyonel)</label>
+          <input type="text" id="qc-hostname" class="form-input" placeholder="Boş bırakılırsa IP adresi kullanılır">
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 20px; background: var(--bg-card); border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="Modal.close('quick-connect-modal')">İptal</button>
+        <button type="submit" id="qc-submit-btn" class="btn btn-primary btn-sm" style="font-weight: 700;">
+          <i data-lucide="zap" style="width: 14px; height: 14px;"></i> Bağlan ve Verileri Çek
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Multi-Format Monaco Preview & Editor Modal (VS Code Style Cloud IDE) -->
+<div id="file-preview-modal" class="modal-overlay">
+  <div class="modal-container preview-modal-container" id="preview-modal-box">
+    
+    <!-- 1. IDE Top Chrome / Header -->
+    <div class="editor-ide-header">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+        <div class="editor-tab-active" id="editor-active-tab">
+          <i data-lucide="file-code" id="editor-file-icon" style="width: 16px; height: 16px; color: var(--zk-red, #E30613);"></i>
+          <span id="preview-modal-filename" style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">dosya.txt</span>
+          <span class="badge gray font-bold" id="editor-dirty-badge" style="display: none; font-size: 9px; padding: 1px 5px; background: #F59E0B; color: #000;">DÜZENLENDİ</span>
+        </div>
+        <div class="editor-path-badge" id="preview-modal-path-container" title="Dosya yolu (Kopyalamak için tıklayın)" onclick="FilePreview.copyCurrentPath()">
+          <i data-lucide="folder" style="width: 13px; height: 13px; flex-shrink: 0;"></i>
+          <span id="preview-modal-path">/</span>
+          <i data-lucide="copy" style="width: 11px; height: 11px; opacity: 0.6; flex-shrink: 0;"></i>
+        </div>
+      </div>
+
+      <!-- Quick Editor Tools -->
+      <div class="editor-tool-group">
+        <button type="button" class="editor-tool-btn" id="btn-editor-wrap" onclick="FilePreview.toggleWordWrap()" title="Satır Kaydırma (Word Wrap)">
+          <i data-lucide="wrap-text" style="width: 13px; height: 13px;"></i>
+          <span>Kaydır</span>
+        </button>
+        <button type="button" class="editor-tool-btn" onclick="FilePreview.zoomEditor(1)" title="Yazı Tipini Büyüt">
+          <i data-lucide="zoom-in" style="width: 13px; height: 13px;"></i>
+        </button>
+        <button type="button" class="editor-tool-btn" onclick="FilePreview.zoomEditor(-1)" title="Yazı Tipini Küçült">
+          <i data-lucide="zoom-out" style="width: 13px; height: 13px;"></i>
+        </button>
+        <button type="button" class="editor-tool-btn" id="btn-editor-theme-toggle" onclick="FilePreview.toggleEditorTheme()" title="Editör Temasını Değiştir (Koyu / Açık)">
+          <i data-lucide="moon" id="editor-theme-icon" style="width: 13px; height: 13px;"></i>
+        </button>
+        <button type="button" class="editor-tool-btn" onclick="FilePreview.toggleFullscreen()" title="Tam Ekran Modu">
+          <i data-lucide="maximize-2" id="editor-fs-icon" style="width: 13px; height: 13px;"></i>
+        </button>
+        <button class="modal-close-btn" style="margin-left: 6px;" onclick="Modal.close('file-preview-modal')" title="Kapat">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. Editor Canvas / Viewer Body -->
+    <div class="preview-modal-body">
+      <div id="monaco-editor-container" class="monaco-editor-host"></div>
+    </div>
+
+    <!-- 3. Status Bar & Executive Action Footer -->
+    <div class="editor-footer-bar">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-muted); font-family: var(--font-mono);">
+        <span>Hızlı Kaydet: <kbd style="background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-default); font-size: 10.5px; font-weight: 700; color: var(--text-primary);">Ctrl + S</kbd></span>
+        <span style="opacity: 0.4;">|</span>
+        <span>Kapat: <kbd style="background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-default); font-size: 10.5px; font-weight: 700; color: var(--text-primary);">Esc</kbd></span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary btn-sm" onclick="Modal.close('file-preview-modal')">Kapat</button>
+        {% if is_operator %}
+          <button id="preview-btn-save" class="btn btn-primary btn-sm" style="padding: 0 16px; font-weight: 700; gap: 6px;">
+            <i data-lucide="save" style="width: 14px; height: 14px;"></i>
+            <span>Değişiklikleri Kaydet &amp; Senkronize Et</span>
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grep Deep Content Search Modal -->
+<div id="grep-search-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 720px; border-radius: 12px; overflow: hidden;">
+    <div class="modal-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i data-lucide="search-code" style="width: 20px; height: 20px; color: #38BDF8;"></i>
+        <div>
+          <h3 class="modal-title" style="font-size: 15px; font-weight: 700;">İçerik İçi Derin Arama &amp; Grep</h3>
+          <span style="font-size: 11px; color: var(--text-muted);">Mevcut dizindeki dosya metinlerinde arama yapın</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('grep-search-modal')">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--bg-surface);">
+      <form id="grep-search-form" onsubmit="FileManager.executeGrep(event)" style="display: flex; gap: 8px;">
+        <input type="text" id="grep-query-input" class="form-input" placeholder="Aranacak metin veya anahtar kelime..." style="flex: 1; font-family: var(--font-mono); font-size: 12.5px;" required>
+        <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 700;">
+          <i data-lucide="search" style="width: 13px; height: 13px;"></i> Tara
+        </button>
+      </form>
+
+      <div style="font-size: 11.5px; color: var(--text-muted); display: flex; justify-content: space-between;">
+        <span id="grep-status-text">Arama yapmak için bir kelime girip 'Tara' butonuna basın.</span>
+      </div>
+
+      <!-- Grep Results Table -->
+      <div style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-card);">
+        <table class="fm-table" style="font-size: 11.5px;">
+          <thead>
+            <tr>
+              <th style="width: 220px;">Dosya Yolu</th>
+              <th style="width: 60px; text-align: center;">Satır</th>
+              <th>Eşleşen Metin / Kod Parçacığı</th>
+            </tr>
+          </thead>
+          <tbody id="grep-results-tbody">
+            <tr>
+              <td colspan="3" style="text-align: center; padding: 24px; color: var(--text-muted);">Henüz arama yapılmadı.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding: 10px 18px; background: var(--bg-card); border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="Modal.close('grep-search-modal')">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chmod / Permissions Modal -->
+<div id="chmod-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 480px; border-radius: 12px; overflow: hidden;">
+    <div class="modal-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i data-lucide="shield-check" style="width: 20px; height: 20px; color: #8B5CF6;"></i>
+        <div>
+          <h3 class="modal-title" style="font-size: 15px; font-weight: 700;">Dosya İzinleri &amp; Sahiplik (chmod)</h3>
+          <div id="chmod-target-path" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></div>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('chmod-modal')">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="chmod-form" onsubmit="FileManager.submitChmod(event)">
+      <div class="modal-body" style="padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--bg-surface);">
+        <!-- Octal & Matrix -->
+        <table class="fm-table" style="font-size: 12px; text-align: center;">
+          <thead>
+            <tr>
+              <th style="text-align: left;">Yetki Grubu</th>
+              <th style="text-align: center;">Okuma (r - 4)</th>
+              <th style="text-align: center;">Yazma (w - 2)</th>
+              <th style="text-align: center;">Çalıştırma (x - 1)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="text-align: left; font-weight: 600;">Sahip (Owner)</td>
+              <td><input type="checkbox" id="perm-ur" onchange="FileManager.calcOctal()" checked></td>
+              <td><input type="checkbox" id="perm-uw" onchange="FileManager.calcOctal()" checked></td>
+              <td><input type="checkbox" id="perm-ux" onchange="FileManager.calcOctal()" checked></td>
+            </tr>
+            <tr>
+              <td style="text-align: left; font-weight: 600;">Grup (Group)</td>
+              <td><input type="checkbox" id="perm-gr" onchange="FileManager.calcOctal()" checked></td>
+              <td><input type="checkbox" id="perm-gw" onchange="FileManager.calcOctal()"></td>
+              <td><input type="checkbox" id="perm-gx" onchange="FileManager.calcOctal()" checked></td>
+            </tr>
+            <tr>
+              <td style="text-align: left; font-weight: 600;">Diğerleri (Public)</td>
+              <td><input type="checkbox" id="perm-or" onchange="FileManager.calcOctal()" checked></td>
+              <td><input type="checkbox" id="perm-ow" onchange="FileManager.calcOctal()"></td>
+              <td><input type="checkbox" id="perm-ox" onchange="FileManager.calcOctal()" checked></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-default);">
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Sayısal İzin Değeri (Octal):</span>
+          <input type="text" id="chmod-octal-input" value="0755" style="width: 70px; text-align: center; font-family: var(--font-mono); font-weight: 700; font-size: 14px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Dosya Sahibi / Grubu (Opsiyonel chown)</label>
+          <input type="text" id="chmod-owner-input" class="form-input" placeholder="root:root veya www-data">
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer;">
+          <input type="checkbox" id="chmod-recursive-check">
+          <span>Alt klasör ve dosyalara özyinelemeli uygula (Recursive -R)</span>
+        </label>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 18px; background: var(--bg-card); border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="Modal.close('chmod-modal')">İptal</button>
+        <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 700;">İzinleri Uygula</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Disk Usage Modal -->
+<div id="disk-usage-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 640px; border-radius: 12px; overflow: hidden;">
+    <div class="modal-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-default); background: var(--bg-card);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i data-lucide="pie-chart" style="width: 20px; height: 20px; color: #F59E0B;"></i>
+        <div>
+          <h3 class="modal-title" style="font-size: 15px; font-weight: 700;">Dizin Disk Alanı ve Boyut Isı Haritası</h3>
+          <div id="disk-usage-current-path" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></div>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" onclick="Modal.close('disk-usage-modal')">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" style="padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--bg-surface);">
+      <!-- Summary Bar -->
+      <div style="background: var(--bg-card); padding: 14px; border-radius: 10px; border: 1px solid var(--border-default); display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>Kök Depolama Doluluk: <strong id="disk-used-percent">24%</strong></span>
+          <span style="font-family: var(--font-mono); font-size: 11.5px;" id="disk-usage-stats">Kullanılan: -- / Toplam: --</span>
+        </div>
+        <div style="width: 100%; height: 8px; background: var(--bg-surface); border-radius: 99px; overflow: hidden;">
+          <div id="disk-usage-progress-bar" style="width: 24%; height: 100%; background: #F59E0B; border-radius: 99px; transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Items List -->
+      <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-card);">
+        <table class="fm-table" style="font-size: 12px;">
+          <thead>
+            <tr>
+              <th>Dizin / Dosya Adı</th>
+              <th style="width: 100px; text-align: right;">Boyut</th>
+            </tr>
+          </thead>
+          <tbody id="disk-usage-tbody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding: 10px 18px; background: var(--bg-card); border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="Modal.close('disk-usage-modal')">Kapat</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/modules/file-preview.js' %}?v={% now 'U' %}"></script>
+<script src="{% static 'js/modules/file-manager.js' %}?v={% now 'U' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.FileManager) {
+      FileManager.init();
+    }
+  });
+</script>
+{% endblock %}

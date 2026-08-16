@@ -1,0 +1,26 @@
+{
+  "system_name": "ZK Remote Operations Center",
+  "version": "2.4.0-enterprise",
+  "environment": "PRODUCTION",
+  "security": {
+    "mfa_enforced": true,
+    "audit_level": "FULL_SIEM",
+    "session_timeout_seconds": 900,
+    "allowed_ciphers": [
+      "aes256-gcm@openssh.com",
+      "chacha20-poly1305@openssh.com"
+    ]
+  },
+  "database": {
+    "engine": "postgresql",
+    "host": "10.211.50.25",
+    "port": 5432,
+    "name": "zk_remote_prod",
+    "ssl_mode": "verify-full"
+  },
+  "monitoring": {
+    "health_check_interval": 15,
+    "alert_webhook": "https://siem.ziraatkatilim.local/api/v1/alerts",
+    "auto_sync_enabled": true
+  }
+}

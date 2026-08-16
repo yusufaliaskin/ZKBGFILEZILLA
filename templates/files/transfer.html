@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Veri Aktarım Merkezi (ZKFileZilla Transfer Hub) | ZK Remote Operations Center{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/file-manager.css' %}?v={% now 'U' %}">
+<style>
+  .zk-select-dropdown { position: relative; user-select: none; }
+  .zk-select-trigger {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .zk-select-trigger:hover { border-color: var(--text-muted); }
+  .zk-select-trigger.active { border-color: var(--zk-red, #E30613); box-shadow: 0 0 0 2px rgba(227,6,19,0.15); }
+  .zk-select-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    padding: 4px;
+    z-index: 120;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .zk-select-menu.show { display: flex; }
+  .zk-select-item {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .zk-select-item:hover { background: var(--sidebar-hover); }
+  .zk-select-item.selected { background: rgba(227,6,19,0.08); color: var(--zk-red, #E30613); font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ft-dual-container">
+  
+  <!-- 1. Executive Top Bar -->
+  <div class="fm-top-bar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-dim);color:var(--accent-primary);display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="arrow-left-right" style="width:20px;height:20px;"></i>
+      </div>
+      <div>
+        <h2 style="font-size:15px;font-weight:800;color:var(--text-primary);margin:0;">ZKFileZilla Çift Panelli Veri Aktarım Merkezi</h2>
+        <span style="font-size:11.5px;color:var(--text-muted);">Yerel İstemci &bull; Uzak SFTP/SSH Sunucu Dosya Senkronizasyon İstasyonu</span>
+      </div>
+    </div>
+
+    <!-- Switch back to Single File Explorer -->
+    <a href="{% if selected_device %}{% url 'files:device_manager' selected_device.id %}{% else %}{% url 'files:manager' %}{% endif %}" class="btn btn-secondary btn-sm" style="margin-left:auto;height:38px;gap:6px;">
+      <i data-lucide="folder" style="width:14px;height:14px;color:var(--accent-blue);"></i>
+      <span>Tekli Dosya Gezginine Dön</span>
+    </a>
+
+    <!-- Telemetry LED Badge -->
+    <div class="telemetry-badge-container">
+      <div class="telemetry-led-pulse" id="ft-status-led"></div>
+      <span class="telemetry-protocol" id="ft-status-text">
+        {% if selected_device and selected_device.is_windows %}Windows (WinRM/SFTP){% else %}Linux (SSH/SFTP){% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- 2. Dual Panes Grid (Left: Local | Center: Buttons | Right: Remote) -->
+  <div class="ft-panes-grid">
+    
+    <!-- 2.1 Left Pane: Yerel Dosya Sistemi (Local Computer) -->
+    <div class="ft-pane">
+      <div class="ft-pane-header">
+        <div class="ft-pane-title">
+          <i data-lucide="laptop" style="width: 16px; height: 16px; color: #38BDF8;"></i>
+          <span>Yerel Bilgisayarım (İstemci)</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-secondary btn-sm" style="height:26px;padding:0 8px;font-size:11px;" onclick="FileTransfer.pickLocalFiles()">
+            <i data-lucide="upload" style="width:12px;height:12px;"></i> Dosya Seç
+          </button>
+          <input type="file" id="ft-local-picker" style="display:none;" multiple onchange="FileTransfer.handleLocalFilesSelected(this.files)">
+        </div>
+      </div>
+
+      <div class="ft-pane-path-bar">
+        <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Konum:</span>
+        <span style="font-size:12px;font-family:var(--font-mono);color:var(--text-primary);">Yerel Dosya Listesi (Aktarılacaklar)</span>
+      </div>
+
+      <div class="ft-pane-body" id="ft-local-dropzone" ondragover="FileTransfer.onLocalDragOver(event)" ondragleave="FileTransfer.onLocalDragLeave(event)" ondrop="FileTransfer.onLocalDrop(event)">
+        <table class="fm-table">
+          <thead>
+            <tr>
+              <th style="width: 32px; text-align: center;">
+                <input type="checkbox" id="ft-local-select-all" onclick="FileTransfer.toggleSelectAllLocal(this.checked)">
+              </th>
+              <th>Dosya Adı</th>
+              <th style="width: 80px;">Boyut</th>
+              <th style="width: 100px;">Tür</th>
+            </tr>
+          </thead>
+          <tbody id="ft-local-table-body">
+            <tr>
+              <td colspan="4" style="text-align:center;padding:36px 14px;color:var(--text-muted);">
+                <i data-lucide="upload-cloud" style="width:36px;height:36px;margin-bottom:8px;opacity:0.6;"></i>
+                <div style="font-weight:600;font-size:13px;color:var(--text-primary);">Yerel Dosyaları Buraya Sürükleyin</div>
+                <div style="font-size:11.5px;margin-top:4px;">veya "Dosya Seç" butonu ile ekleyin</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2.2 Center Action Buttons (Upload to Remote > | Download to Local <) -->
+    <div class="ft-center-controls">
+      <button type="button" class="ft-transfer-btn" onclick="FileTransfer.transferLocalToRemote()" title="Seçili Yerel Dosyaları Uzak Sunucuya Yükle (Upload >)">
+        <i data-lucide="chevron-right" style="width:22px;height:22px;"></i>
+      </button>
+      <button type="button" class="ft-transfer-btn" onclick="FileTransfer.transferRemoteToLocal()" title="Seçili Uzak Dosyaları Yerel Bilgisayara İndir (Download <)">
+        <i data-lucide="chevron-left" style="width:22px;height:22px;"></i>
+      </button>
+    </div>
+
+    <!-- 2.3 Right Pane: Uzak Sunucu Dosya Sistemi (Remote Server) -->
+    <div class="ft-pane">
+      <div class="ft-pane-header">
+        <div class="ft-pane-title">
+          <i data-lucide="server" style="width: 16px; height: 16px; color: #F59E0B;"></i>
+          <span>Uzak Sunucu / Cihaz</span>
+        </div>
+        
+        <!-- Hidden input for selected remote device -->
+        <input type="hidden" id="ft-remote-device-select" value="{% if selected_device %}{{ selected_device.id }}{% elif devices %}{{ devices.0.id }}{% endif %}">
+
+        <!-- Custom Remote Device Dropdown -->
+        <div class="zk-select-dropdown" id="ftDeviceDropdown">
+          <button type="button" class="zk-select-trigger" onclick="FileTransfer.toggleDropdown('ftDeviceDropdown', event)" style="height:28px;padding:0 8px;font-size:11.5px;min-width:210px;">
+            <span class="zk-select-content" id="selectedFtDeviceText" style="display:flex;align-items:center;gap:6px;">
+              {% if selected_device %}
+                <img src="{% if selected_device.is_windows %}{% static 'img/windows.png' %}{% else %}{% static 'img/pardus.png' %}{% endif %}" style="width:14px;height:14px;object-fit:contain;" alt="Logo">
+                <span>{{ selected_device.hostname }} ({{ selected_device.ip_address }})</span>
+              {% elif devices %}
+                <img src="{% if devices.0.is_windows %}{% static 'img/windows.png' %}{% else %}{% static 'img/pardus.png' %}{% endif %}" style="width:14px;height:14px;object-fit:contain;" alt="Logo">
+                <span>{{ devices.0.hostname }} ({{ devices.0.ip_address }})</span>
+              {% else %}
+                <span>Cihaz Yok</span>
+              {% endif %}
+            </span>
+            <i data-lucide="chevron-down" style="width:11px;height:11px;color:var(--text-muted);"></i>
+          </button>
+          <div class="zk-select-menu" id="ftDeviceMenu" style="min-width:240px;max-height:240px;overflow-y:auto;">
+            {% for d in devices %}
+              <div class="zk-select-item {% if selected_device and selected_device.id == d.id %}selected{% elif forloop.first and not selected_device %}selected{% endif %}"
+                   data-id="{{ d.id }}"
+                   onclick="FileTransfer.selectDeviceCustom('{{ d.id }}', '{{ d.hostname }} ({{ d.ip_address }})', '{% if d.is_windows %}{% static 'img/windows.png' %}{% else %}{% static 'img/pardus.png' %}{% endif %}')">
+                <img src="{% if d.is_windows %}{% static 'img/windows.png' %}{% else %}{% static 'img/pardus.png' %}{% endif %}" style="width:14px;height:14px;object-fit:contain;" alt="Logo">
+                <span>{{ d.hostname }} ({{ d.ip_address }}) &bull; {% if d.is_windows %}Win{% else %}Pardus{% endif %}</span>
+              </div>
+            {% empty %}
+              <div class="zk-select-item" style="color:var(--text-muted);">Kayıtlı cihaz yok</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="ft-pane-path-bar">
+        <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Uzak Yol:</span>
+        <input type="text" id="ft-remote-path" class="form-input" style="height:26px;font-size:12px;font-family:var(--font-mono);flex:1;padding:0 8px;" value="/" onkeydown="if(event.key==='Enter') FileTransfer.navigateTo(this.value)">
+        <button type="button" class="btn btn-secondary btn-sm" style="height:26px;padding:0 8px;font-size:11px;" onclick="FileTransfer.goUpRemote()" title="Üst Dizin">
+          <i data-lucide="arrow-up" style="width:12px;height:12px;"></i>
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" style="height:26px;padding:0 8px;font-size:11px;" onclick="FileTransfer.refreshRemote()" title="Yenile">
+          <i data-lucide="refresh-cw" style="width:12px;height:12px;"></i>
+        </button>
+      </div>
+
+      <div class="ft-pane-body">
+        <table class="fm-table">
+          <thead>
+            <tr>
+              <th style="width: 32px; text-align: center;">
+                <input type="checkbox" id="ft-remote-select-all" onclick="FileTransfer.toggleSelectAllRemote(this.checked)">
+              </th>
+              <th>Dosya / Klasör Adı</th>
+              <th style="width: 80px;">Boyut</th>
+              <th style="width: 90px;">Tür</th>
+              <th style="width: 70px;">İzinler</th>
+            </tr>
+          </thead>
+          <tbody id="ft-remote-table-body">
+            <!-- Populated dynamically via file-transfer.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3. Bottom FileZilla Live Transfer Queue Window -->
+  <div class="ft-queue-panel">
+    <div class="ft-queue-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="color:var(--text-primary);">AKTİF VERİ AKTARIM KUYRUĞU</span>
+        <span style="font-family:var(--font-mono);color:var(--accent-primary);" id="ft-queue-stats">0 dosya kuyrukta &bull; 0 KB/s</span>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" style="height:22px;padding:0 8px;font-size:10px;" onclick="FileTransfer.clearQueue()">Kuyruğu Temizle</button>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;">
+      <table class="fm-table" style="font-size:11.5px;">
+        <thead>
+          <tr>
+            <th style="padding:4px 10px;font-size:10px;">Yön</th>
+            <th style="padding:4px 10px;font-size:10px;">Dosya Adı</th>
+            <th style="padding:4px 10px;font-size:10px;">Hedef Konum</th>
+            <th style="padding:4px 10px;font-size:10px;">Boyut</th>
+            <th style="padding:4px 10px;font-size:10px;width:140px;">İlerleme</th>
+            <th style="padding:4px 10px;font-size:10px;">Hız</th>
+            <th style="padding:4px 10px;font-size:10px;width:90px;">Durum</th>
+          </tr>
+        </thead>
+        <tbody id="ft-queue-table-body">
+          <tr>
+            <td colspan="7" style="text-align:center;padding:12px;color:var(--text-muted);font-family:inherit;">
+              Aktif kuyruk boş. Yukarıdaki aktarım butonları ile transfer başlatabilirsiniz.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/modules/file-transfer.js' %}"></script>
+{% endblock %}

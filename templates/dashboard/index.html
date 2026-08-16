@@ -1,0 +1,1047 @@
+{% extends "base.html" %}
+{% load static tz %}
+
+{% block title %}Dashboard | ZK Remote Operations Center{% endblock %}
+
+{% block content %}
+<!-- Real Database Metrics Storage for Dynamic Updates -->
+<div id="dashboardStatsData" data-active="{{ online_devices|default:0 }}"
+  data-overlimit="{{ warning_devices|default:0 }}" data-sent="{{ offline_devices|default:0 }}"
+  data-total="{{ total_devices|default:0 }}" data-donut-active="{{ online_devices|default:0 }}"
+  data-donut-overlimit="{{ warning_devices|default:0 }}" data-donut-loggedout="{{ offline_devices|default:0 }}"
+  style="display:none;"></div>
+{{ activity_values|json_script:"hourlyCountsJson" }}
+{{ time_slots|json_script:"hoursLabelsJson" }}
+
+<div class="dashboard-clean-container" style="display:flex;flex-direction:column;gap:18px;width:100%;">
+
+  <!-- =========================================================================
+       ROW 1: 4 Clean Minimalist KPI Cards with Authentic OS Logos
+       ========================================================================= -->
+  <div class="metrics-quad-grid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:16px;">
+
+    <!-- Card 1: Toplam Düğüm -->
+    <div class="metric-clean-card animate-fade-in" style="position:relative;overflow:hidden;padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="metric-clean-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">Toplam Kayıtlı Düğüm</div>
+        <div style="display:flex;gap:6px;align-items:center;background:var(--bg-surface);padding:3px 7px;border-radius:6px;border:1px solid var(--border-subtle);">
+          <img src="{% static 'img/pardus.png' %}" alt="Pardus" style="width:16px;height:16px;object-fit:contain;" title="Pardus GNU/Linux">
+          <img src="{% static 'img/windows.png' %}" alt="Windows" style="width:14px;height:14px;object-fit:contain;" title="Microsoft Windows">
+        </div>
+      </div>
+      <div class="metric-clean-value" id="kpiTotal" style="font-size:28px;font-weight:800;color:var(--text-primary);">{{ total_devices|default:0 }}</div>
+      <div class="metric-clean-sub" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11.5px;flex-wrap:wrap;">
+        <span style="display:inline-flex;align-items:center;gap:4px;color:#10B981;font-weight:700;background:rgba(16,185,129,0.1);padding:2px 8px;border-radius:5px;border:1px solid rgba(16,185,129,0.2);">
+          <img src="{% static 'img/pardus.png' %}" style="width:13px;height:13px;object-fit:contain;" alt="Pardus"> {{ linux_count|default:0 }} Pardus
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:4px;color:#38BDF8;font-weight:700;background:rgba(56,189,248,0.1);padding:2px 8px;border-radius:5px;border:1px solid rgba(56,189,248,0.2);">
+          <img src="{% static 'img/windows.png' %}" style="width:12px;height:12px;object-fit:contain;" alt="Windows"> {{ windows_count|default:0 }} Windows
+        </span>
+      </div>
+    </div>
+
+    <!-- Card 2: Çevrimiçi Düğümler -->
+    <div class="metric-clean-card animate-fade-in" style="padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="metric-clean-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">Çevrimiçi Düğümler</div>
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 8px #10B981;"></span>
+      </div>
+      <div class="metric-clean-value" id="kpiActive" style="font-size:28px;font-weight:800;color:#10B981;">{{ online_devices|default:0 }}</div>
+      <div class="metric-clean-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:8px;">Canlı SSH, SFTP ve WinRM oturumu hazır</div>
+    </div>
+
+    <!-- Card 3: Uyarı & Bekleyen -->
+    <div class="metric-clean-card animate-fade-in" style="padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="metric-clean-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">Uyarı &amp; Çevrimdışı</div>
+        <i data-lucide="alert-circle" style="width:16px;height:16px;color:{% if warning_devices > 0 %}var(--zk-red, #E30613){% else %}var(--text-muted){% endif %};"></i>
+      </div>
+      <div class="metric-clean-value" id="kpiOverLimit"
+        style="font-size:28px;font-weight:800;color:{% if warning_devices > 0 %}var(--zk-red, #E30613){% else %}var(--text-muted){% endif %};">{{ warning_devices|default:0 }}</div>
+      <div class="metric-clean-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:8px;">{{ offline_devices|default:0 }} düğüm yanıt vermiyor</div>
+    </div>
+
+    <!-- Card 4: Toplam Denetim Logu -->
+    <div class="metric-clean-card animate-fade-in" style="padding:18px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="metric-clean-label" style="font-weight:700;font-size:12.5px;color:var(--text-muted);">SIEM Denetim &amp; Log</div>
+        <i data-lucide="shield-check" style="width:16px;height:16px;color:#10B981;"></i>
+      </div>
+      <div class="metric-clean-value" id="kpiAuditTotal" style="font-size:28px;font-weight:800;color:var(--zk-red, #E30613);">{{ total_audits|default:0 }}</div>
+      <div class="metric-clean-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:8px;">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10B981;box-shadow:0 0 5px #10B981;margin-right:4px;"></span>%100 SHA-256 Vault Korumalı
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================================
+       ROW 2: Dual Grid (Activity Line Chart + Donut Distribution)
+       ========================================================================= -->
+  <div class="dashboard-dual-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+    <!-- Left: Activity Line Chart with Real Dynamic Time Filter -->
+    <div class="panel-clean-card animate-fade-in">
+      <div class="panel-card-head"
+        style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:nowrap;">
+        <div>
+          <h3 class="panel-card-title" style="margin:0;font-size:14px;font-weight:700;white-space:nowrap;">İşlem &amp;
+            Güvenlik Aktivitesi</h3>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Sistem genelindeki 24 saatlik denetim ve
+            operasyon yoğunluğu</div>
+        </div>
+
+        <div class="panel-card-actions" style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex-shrink:0;">
+          <!-- Segmented Filter Container -->
+          <div id="activityFilterContainer" style="display:inline-flex;align-items:center;">
+            <div class="segmented-time-group" id="activitySegmentedGroup"
+              style="display:inline-flex;gap:2px;background:var(--bg-surface);padding:2px;border-radius:7px;border:1px solid var(--border-default);">
+              <button type="button" class="segmented-pill-btn" onclick="onActivityTimeFilterChange('1h')">1S</button>
+              <button type="button" class="segmented-pill-btn" onclick="onActivityTimeFilterChange('6h')">6S</button>
+              <button type="button" class="segmented-pill-btn" onclick="onActivityTimeFilterChange('12h')">12S</button>
+              <button type="button" class="segmented-pill-btn" onclick="onActivityTimeFilterChange('24h')">24S</button>
+              <button type="button" class="segmented-pill-btn" onclick="onActivityTimeFilterChange('7d')">7G</button>
+              <button type="button" class="segmented-pill-btn" onclick="onActivityTimeFilterChange('30d')">30G</button>
+              <button type="button" class="segmented-pill-btn" onclick="openCustomDateRangeModal('activity', event)"
+                title="Özel Tarih Aralığı Seç">
+                <span>Özel</span>
+              </button>
+            </div>
+            <div class="custom-active-capsule" id="activityCustomActiveGroup"
+              style="display:none;align-items:center;gap:6px;background:var(--bg-surface);padding:3px 8px;border-radius:7px;border:1px solid var(--border-default);font-size:11px;">
+              <span id="activityCustomDateLabel"></span>
+              <button type="button" onclick="clearCustomDateRange('activity')"
+                style="border:none;background:transparent;color:var(--zk-red, #E30613);cursor:pointer;font-weight:bold;">✕</button>
+            </div>
+          </div>
+
+          <!-- Export Dropdown -->
+          <div class="zk-menu-dropdown-wrap" style="position:relative;">
+            <button type="button" class="action-btn-clean" onclick="toggleDashboardCardMenu('activityExportMenu', event)"
+              title="Grafik Verilerini Dışa Aktar">
+              <i data-lucide="download" style="width:13px;height:13px;"></i>
+            </button>
+            <div class="zk-card-dropdown-menu" id="activityExportMenu">
+              <button type="button" class="zk-card-dropdown-item" onclick="exportActivityAsCSV()">
+                <i data-lucide="file-spreadsheet" style="width:13px;height:13px;color:#10B981;"></i>
+                <span>CSV Olarak İndir</span>
+              </button>
+              <button type="button" class="zk-card-dropdown-item" onclick="exportActivityAsJSON()">
+                <i data-lucide="file-code" style="width:13px;height:13px;color:#38BDF8;"></i>
+                <span>JSON Olarak İndir</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Line Chart Canvas Container -->
+      <div class="chart-canvas-wrap" style="position:relative;height:230px;width:100%;">
+        <canvas id="sessionActivityChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Right: Donut Chart (Node Status Distribution) -->
+    <div class="panel-clean-card animate-fade-in">
+      <div class="panel-card-head"
+        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <h3 class="panel-card-title" style="margin:0;font-size:14px;font-weight:700;">Düğüm Durum Dağılımı</h3>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Çevrimiçi, uyarı ve çevrimdışı düğüm
+            oranları</div>
+        </div>
+
+        <div class="panel-card-actions" style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex-shrink:0;">
+          <!-- Segmented Filter Container for Donut -->
+          <div class="segmented-time-group" id="donutTimeFilterGroup"
+            style="display:inline-flex;gap:2px;background:var(--bg-surface);padding:2px;border-radius:7px;border:1px solid var(--border-default);">
+            <button type="button" class="segmented-pill-btn active" onclick="onDonutTimeFilterChange('all')">Tümü</button>
+            <button type="button" class="segmented-pill-btn" onclick="onDonutTimeFilterChange('24h')">24S</button>
+            <button type="button" class="segmented-pill-btn" onclick="onDonutTimeFilterChange('7d')">7G</button>
+            <button type="button" class="segmented-pill-btn" onclick="onDonutTimeFilterChange('30d')">30G</button>
+          </div>
+
+          <!-- Export Dropdown -->
+          <div class="zk-menu-dropdown-wrap" style="position:relative;">
+            <button type="button" class="action-btn-clean" onclick="toggleDashboardCardMenu('donutExportMenu', event)"
+              title="Dağılım Verilerini Dışa Aktar">
+              <i data-lucide="download" style="width:13px;height:13px;"></i>
+            </button>
+            <div class="zk-card-dropdown-menu" id="donutExportMenu">
+              <button type="button" class="zk-card-dropdown-item" onclick="exportDonutAsCSV()">
+                <i data-lucide="file-spreadsheet" style="width:13px;height:13px;color:#10B981;"></i>
+                <span>CSV Olarak İndir</span>
+              </button>
+              <button type="button" class="zk-card-dropdown-item" onclick="exportDonutAsJSON()">
+                <i data-lucide="file-code" style="width:13px;height:13px;color:#38BDF8;"></i>
+                <span>JSON Olarak İndir</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Donut Chart & Modern Legend -->
+      <div class="donut-chart-flex"
+        style="display:flex;align-items:center;justify-content:center;gap:24px;height:230px;">
+        <div class="donut-canvas-container" style="position:relative;width:190px;height:190px;flex-shrink:0;">
+          <canvas id="sessionDistributionChart"></canvas>
+          <div class="donut-center-metric"
+            style="position:absolute;top:50%;left:50%;transform:translate(-50%, -50%);text-align:center;pointer-events:none;">
+            <div class="donut-center-val" id="donutCenterCount"
+              style="font-size:22px;font-weight:800;color:var(--text-primary);line-height:1;">{{ online_devices|default:0 }}</div>
+            <div class="donut-center-sub" id="donutCenterLabel"
+              style="font-size:10px;font-weight:700;color:#10B981;margin-top:2px;">AKTİF</div>
+          </div>
+        </div>
+
+        <div class="donut-legend-clean" style="display:flex;flex-direction:column;gap:10px;flex:1;">
+          <div class="legend-clean-row" style="display:flex;align-items:center;gap:8px;font-size:12px;">
+            <span class="legend-color-dot"
+              style="width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 5px rgba(16,185,129,0.5);flex-shrink:0;"></span>
+            <span style="color:var(--text-primary);font-weight:600;flex:1;">Çevrimiçi Düğümler</span>
+            <span class="legend-val mono" id="legendActiveCount"
+              style="color:var(--text-muted);font-size:11.5px;">({{ online_devices|default:0 }})</span>
+          </div>
+
+          <div class="legend-clean-row" style="display:flex;align-items:center;gap:8px;font-size:12px;">
+            <span class="legend-color-dot"
+              style="width:9px;height:9px;border-radius:50%;background:#E30613;box-shadow:0 0 5px rgba(227,6,19,0.5);flex-shrink:0;"></span>
+            <span style="color:var(--text-primary);font-weight:600;flex:1;">Uyarı / Bekleyen</span>
+            <span class="legend-val mono" id="legendOverlimitCount"
+              style="color:var(--text-muted);font-size:11.5px;">({{ warning_devices|default:0 }})</span>
+          </div>
+
+          <div class="legend-clean-row" style="display:flex;align-items:center;gap:8px;font-size:12px;">
+            <span class="legend-color-dot"
+              style="width:9px;height:9px;border-radius:50%;background:#94A3B8;flex-shrink:0;"></span>
+            <span style="color:var(--text-primary);font-weight:600;flex:1;">Çevrimdışı Düğümler</span>
+            <span class="legend-val mono" id="legendLoggedoutCount"
+              style="color:var(--text-muted);font-size:11.5px;">({{ offline_devices|default:0 }})</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================================
+       ROW 3: Dual List Cards (Düğümler + Canlı Güvenlik Logları)
+       ========================================================================= -->
+  <div class="dashboard-dual-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;padding-bottom:32px;">
+
+    <!-- Left List: Düğüm & Sunucu Envanteri (With SSH, SFTP, RDP, Ping) -->
+    <div class="panel-clean-card animate-fade-in">
+      <div class="panel-card-head"
+        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:28px;height:28px;border-radius:6px;background:rgba(227,6,19,0.1);display:flex;align-items:center;justify-content:center;color:var(--zk-red, #E30613);">
+            <i data-lucide="server" style="width:16px;height:16px;"></i>
+          </div>
+          <div>
+            <h3 class="panel-card-title" style="margin:0;font-size:14px;font-weight:700;">Düğüm &amp; Sunucu Envanteri</h3>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Kayıtlı sunucular, canlı protokoller ve anlık işlem butonları</div>
+          </div>
+        </div>
+        <a href="{% url 'devices:list' %}" class="panel-head-link"
+          style="font-size:12px;font-weight:600;color:var(--zk-red, #E30613);">Tümünü Gör &rarr;</a>
+      </div>
+
+      <div class="clean-items-list" style="display:flex;flex-direction:column;gap:8px;">
+        {% for dev in warning_list %}
+        <div class="clean-list-row"
+          style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:8px;">
+          <div class="clean-item-main" style="display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden;">
+            <div class="clean-item-title" style="display:flex;align-items:center;gap:8px;">
+              <span class="mono" style="color:var(--text-primary);font-size:13px;font-weight:700;">{{ dev.hostname }}</span>
+              <div style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-card);border:1px solid var(--border-default);padding:2px 7px;border-radius:6px;">
+                <img src="{% if 'Windows' in dev.os %}{% static 'img/windows.png' %}{% else %}{% static 'img/pardus.png' %}{% endif %}" alt="{{ dev.os }}" style="width:14px;height:14px;object-fit:contain;">
+                <span style="font-size:10.5px;font-weight:700;color:var(--text-primary);">{{ dev.os }}</span>
+              </div>
+              <span
+                class="badge {% if dev.status_code == 'ONLINE' %}green{% elif dev.status_code == 'WARNING' %}orange{% else %}gray{% endif %}"
+                id="status-badge-{{ dev.id }}" style="font-size:9px;padding:1px 5px;font-weight:700;">{{ dev.status }}</span>
+            </div>
+            <div class="clean-item-subtitle" style="font-size:11px;color:var(--text-muted);">
+              IP: <b style="color:var(--text-primary);font-family:var(--font-mono);">{{ dev.ip }}</b> &bull; Sicil:
+              <span style="font-family:var(--font-mono);">{{ dev.sicil }}</span> &bull; Son Görülme: <span>{{ dev.last_seen }}</span>
+            </div>
+          </div>
+
+          <div class="clean-item-actions" style="display:flex;flex-direction:row;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">
+            <!-- Ping Button -->
+            <button type="button" class="btn btn-secondary btn-sm" onclick="pingDevice('{{ dev.id }}', this)"
+              title="Canlı Ping Testi Yap" style="padding:0 10px;font-size:11px;font-weight:600;height:28px;border-radius:6px;gap:5px;display:inline-flex;align-items:center;">
+              <i data-lucide="activity" style="width:12px;height:12px;color:var(--text-muted);"></i>
+              <span>Ping</span>
+            </button>
+
+            {% if 'Windows' in dev.os %}
+            <!-- Windows RDP Button -->
+            <a href="{% url 'devices:rdp_download' dev.id %}" class="btn btn-secondary btn-sm"
+              style="padding:0 10px;font-size:11px;font-weight:600;height:28px;border-radius:6px;gap:5px;display:inline-flex;align-items:center;color:#38BDF8;" title="Microsoft RDP Dosyası İndir">
+              <i data-lucide="monitor" style="width:12px;height:12px;"></i>
+              <span>RDP</span>
+            </a>
+            {% else %}
+            <!-- Linux SSH Button -->
+            <a href="{% url 'terminal_device' dev.id %}" class="btn btn-secondary btn-sm"
+              style="padding:0 10px;font-size:11px;font-weight:600;height:28px;border-radius:6px;gap:5px;display:inline-flex;align-items:center;color:#10B981;" title="Canlı SSH Terminali">
+              <i data-lucide="terminal" style="width:12px;height:12px;"></i>
+              <span>SSH</span>
+            </a>
+            {% endif %}
+
+            <!-- SFTP / File Explorer -->
+            <a href="{% url 'files:device_manager' dev.id %}" class="btn btn-secondary btn-sm"
+              style="padding:0 10px;font-size:11px;font-weight:600;height:28px;border-radius:6px;gap:5px;display:inline-flex;align-items:center;" title="SFTP Dosya Gezgini">
+              <i data-lucide="folder" style="width:12px;height:12px;color:var(--text-muted);"></i>
+              <span>SFTP</span>
+            </a>
+          </div>
+        </div>
+        {% empty %}
+        <div class="clean-list-empty"
+          style="padding:24px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <i data-lucide="server" style="width:24px;height:24px;margin-bottom:6px;opacity:0.5;"></i>
+          <div style="font-weight:700;color:var(--text-primary);font-size:13px;">Henüz Kayıtlı Düğüm Bulunmuyor</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;margin-bottom:10px;">Envantere yeni bir
+            SSH (Pardus/Linux) veya Windows uç noktası tanımlayın.</div>
+          <a href="{% url 'devices:list' %}" class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 12px;">+
+            Yeni Düğüm Ekle</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Right List: Son SOC Güvenlik & Audit Olayları -->
+    <div class="panel-clean-card animate-fade-in">
+      <div class="panel-card-head"
+        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div>
+          <h3 class="panel-card-title" style="margin:0;font-size:14px;font-weight:700;">Canlı SOC Güvenlik &amp; Audit
+            Akışı</h3>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Sistem genelinde yürütülen son dosya,
+            aktarım ve terminal logları</div>
+        </div>
+        <a href="{% url 'audit:list' %}" class="panel-head-link"
+          style="font-size:12px;font-weight:600;color:var(--zk-red, #E30613);">Tümünü Gör &rarr;</a>
+      </div>
+
+      <div class="clean-items-list" style="display:flex;flex-direction:column;gap:8px;">
+        {% for a in recent_audits %}
+        <div class="clean-list-row"
+          style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:8px;">
+          <div class="clean-item-main" style="display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden;">
+            <div class="clean-item-title" style="display:flex;align-items:center;gap:8px;">
+              <span class="mono" style="color:var(--text-primary);font-size:13px;font-weight:700;">{{ a.operation }}</span>
+              <span class="badge {% if a.is_success %}green{% else %}red{% endif %}"
+                style="font-size:9px;padding:1px 5px;font-weight:700;">{% if a.is_success %}BAŞARILI{% else %}HATA{% endif %}</span>
+            </div>
+            <div class="clean-item-subtitle" style="font-size:11px;color:var(--text-muted);">
+              Düğüm: <b style="color:var(--text-primary);font-family:var(--font-mono);">{{ a.hostname }}</b> &bull;
+              Kullanıcı: <span style="font-family:var(--font-mono);">{{ a.username }}</span> &bull; <span
+                style="font-family:var(--font-mono);">{{ a.timestamp_str|slice:"11:" }}</span>
+            </div>
+          </div>
+          <div class="clean-item-side" style="flex-shrink:0;">
+            <a href="{% url 'audit:list' %}" class="btn btn-secondary btn-sm"
+              style="font-size:11px;padding:3px 8px;height:26px;">Detay &rarr;</a>
+          </div>
+        </div>
+        {% empty %}
+        <div class="clean-list-empty"
+          style="padding:28px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <i data-lucide="shield-check" style="width:24px;height:24px;margin-bottom:6px;opacity:0.5;"></i>
+          <div style="font-weight:700;color:var(--text-primary);font-size:13px;">Canlı Denetim Kaydı Bekleniyor</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">İlk SFTP dosya transferi veya SSH komutu
+            yürütüldüğünde burada anlık listelenecektir.</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Custom Date Range Popover Card for Dashboard -->
+<div id="customDateRangePopover" class="dashboard-date-popover"
+  style="display:none;position:fixed;background:var(--bg-card);border:1px solid var(--border-default);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,0.3);padding:16px;z-index:1000;width:340px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <h4 style="margin:0;font-size:13px;font-weight:700;color:var(--text-primary);">Özel Tarih Aralığı</h4>
+    <button type="button" onclick="closeCustomDateRangeModal()"
+      style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:16px;">&times;</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:4px;margin-bottom:12px;">
+    <button type="button" class="popover-preset-chip" onclick="setCustomDateRangePreset('today')"
+      style="padding:4px;font-size:10.5px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:5px;cursor:pointer;color:var(--text-primary);">Bugün</button>
+    <button type="button" class="popover-preset-chip" onclick="setCustomDateRangePreset('yesterday')"
+      style="padding:4px;font-size:10.5px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:5px;cursor:pointer;color:var(--text-primary);">Dün</button>
+    <button type="button" class="popover-preset-chip" onclick="setCustomDateRangePreset('last7d')"
+      style="padding:4px;font-size:10.5px;background:var(--zk-red, #E30613);color:#fff;border:1px solid var(--zk-red, #E30613);border-radius:5px;cursor:pointer;">Son
+      7 Gün</button>
+    <button type="button" class="popover-preset-chip" onclick="setCustomDateRangePreset('last30d')"
+      style="padding:4px;font-size:10.5px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:5px;cursor:pointer;color:var(--text-primary);">Son
+      30 Gün</button>
+    <button type="button" class="popover-preset-chip" onclick="setCustomDateRangePreset('thisMonth')"
+      style="padding:4px;font-size:10.5px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:5px;cursor:pointer;color:var(--text-primary);">Bu
+      Ay</button>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+    <div>
+      <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">Başlangıç</label>
+      <input type="datetime-local" id="customStartDateInput"
+        style="width:100%;height:30px;padding:0 8px;font-size:11.5px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);outline:none;">
+    </div>
+    <div>
+      <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">Bitiş</label>
+      <input type="datetime-local" id="customEndDateInput"
+        style="width:100%;height:30px;padding:0 8px;font-size:11.5px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);outline:none;">
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:6px;">
+    <button type="button" onclick="closeCustomDateRangeModal()" class="btn btn-secondary btn-sm"
+      style="font-size:11px;">Vazgeç</button>
+    <button type="button" onclick="applyDashboardCustomDateRange()" class="btn btn-primary btn-sm"
+      style="font-size:11px;">Uygula</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  var activityChartInstance = null;
+  var donutChartInstance = null;
+
+  function isDarkMode() {
+    return document.documentElement.getAttribute("data-theme") === "dark";
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var countsScript = document.getElementById("hourlyCountsJson");
+    var labelsScript = document.getElementById("hoursLabelsJson");
+    var initCounts = [];
+    var initLabels = [];
+    try {
+      if (countsScript) {
+        var rawCounts = JSON.parse(countsScript.textContent);
+        initCounts = (typeof rawCounts === 'string') ? JSON.parse(rawCounts) : rawCounts;
+      }
+      if (labelsScript) {
+        var rawLabels = JSON.parse(labelsScript.textContent);
+        initLabels = (typeof rawLabels === 'string') ? JSON.parse(rawLabels) : rawLabels;
+      }
+    } catch (e) { }
+
+    if (!Array.isArray(initLabels) || !initLabels.length) {
+      initLabels = ["00:00", "02:00", "04:00", "06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"];
+    }
+    if (!Array.isArray(initCounts) || !initCounts.length) {
+      initCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+
+    window.currentActivityLabels = initLabels;
+    window.currentActivityCounts = initCounts;
+
+    var statsEl = document.getElementById("dashboardStatsData");
+    var initActive = statsEl ? parseInt(statsEl.getAttribute("data-active"), 10) || 0 : 0;
+    var initOver = statsEl ? parseInt(statsEl.getAttribute("data-overlimit"), 10) || 0 : 0;
+    var initLogged = statsEl ? parseInt(statsEl.getAttribute("data-sent"), 10) || 0 : 0;
+
+    renderSessionActivityChart(initLabels, initCounts, false);
+    renderRealDonutChart(initActive, initOver, initLogged, false);
+
+    // Read stored time range preference and restore active pill
+    var savedActivityRange = localStorage.getItem('zk_dashboard_activity_range') || '24h';
+    var savedDonutRange = localStorage.getItem('zk_dashboard_donut_range') || 'all';
+
+    updateActivityPills(savedActivityRange);
+    updateDonutPills(savedDonutRange);
+
+    if (savedActivityRange !== '24h') {
+      onActivityTimeFilterChange(savedActivityRange);
+    }
+    if (savedDonutRange !== 'all') {
+      onDonutTimeFilterChange(savedDonutRange);
+    }
+
+    // Global outside click handler for dropdowns
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest(".custom-select-wrapper")) {
+        document.querySelectorAll(".custom-select-menu").forEach(function (el) {
+          el.style.display = "none";
+          el.classList.remove("open", "show");
+        });
+      }
+    });
+
+    window.addEventListener("zk-theme-changed", function () {
+      renderSessionActivityChart(window.currentActivityLabels, window.currentActivityCounts, false);
+      var active = parseInt(document.getElementById("legendActiveCount")?.textContent?.replace(/\D/g, '') || 0, 10);
+      var over = parseInt(document.getElementById("legendOverlimitCount")?.textContent?.replace(/\D/g, '') || 0, 10);
+      var logged = parseInt(document.getElementById("legendLoggedoutCount")?.textContent?.replace(/\D/g, '') || 0, 10);
+      renderRealDonutChart(active, over, logged, false);
+    });
+  });
+
+  /* =========================================================================
+     Sessions Authentic Red Line Chart Engine with Smooth Morphing Animation
+     ========================================================================= */
+  function renderSessionActivityChart(labels, counts, isUpdate) {
+    var canvas = document.getElementById("sessionActivityChart");
+    if (!canvas || typeof Chart === "undefined") return;
+
+    var dark = isDarkMode();
+    var textColor = dark ? "#94A3B8" : "#64748B";
+    var gridColor = dark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)";
+
+    // Smooth data morphing if instance already exists and not a full rebuild
+    if (activityChartInstance && isUpdate) {
+      activityChartInstance.data.labels = labels;
+      activityChartInstance.data.datasets[0].data = counts;
+      activityChartInstance.update({
+        duration: 600,
+        easing: "easeOutQuart"
+      });
+      return;
+    }
+
+    if (activityChartInstance) {
+      activityChartInstance.destroy();
+      activityChartInstance = null;
+    }
+
+    var ctx = canvas.getContext("2d");
+    var gradient = ctx.createLinearGradient(0, 0, 0, 160);
+    if (dark) {
+      gradient.addColorStop(0, "rgba(227, 6, 19, 0.35)");
+      gradient.addColorStop(1, "rgba(227, 6, 19, 0.0)");
+    } else {
+      gradient.addColorStop(0, "rgba(227, 6, 19, 0.20)");
+      gradient.addColorStop(1, "rgba(227, 6, 19, 0.0)");
+    }
+
+    activityChartInstance = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "İşlem & Olay",
+            data: counts,
+            borderColor: "#E30613",
+            borderWidth: 2.2,
+            pointBackgroundColor: "#E30613",
+            pointBorderColor: dark ? "#111622" : "#FFFFFF",
+            pointBorderWidth: 2,
+            pointRadius: 3.5,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: "#FFFFFF",
+            pointHoverBorderColor: "#E30613",
+            pointHoverBorderWidth: 2.5,
+            fill: true,
+            backgroundColor: gradient,
+            tension: 0.35,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600, easing: "easeOutQuart" },
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: dark ? "#1E293B" : "#0F172A",
+            titleColor: "#F8FAFC",
+            bodyColor: "#CBD5E1",
+            padding: 9,
+            cornerRadius: 7,
+            borderColor: dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)",
+            borderWidth: 1,
+            displayColors: false,
+            callbacks: {
+              label: function (context) {
+                return " " + context.parsed.y + " İşlem / Olay Kaydı";
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: textColor, font: { size: 10.5, family: "Inter, sans-serif" }, maxRotation: 0 }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 10.5, family: "Inter, sans-serif" }, precision: 0 }
+          }
+        }
+      }
+    });
+  }
+
+  /* =========================================================================
+     Sessions Authentic Donut Distribution Engine with Fluid Animation
+     ========================================================================= */
+  function renderRealDonutChart(active, overlimit, loggedout, isUpdate) {
+    var canvas = document.getElementById("sessionDistributionChart");
+    var donutCenter = document.getElementById("donutCenterCount");
+    var donutLabel = document.getElementById("donutCenterLabel");
+    var legActive = document.getElementById("legendActiveCount");
+    var legOver = document.getElementById("legendOverlimitCount");
+    var legLogged = document.getElementById("legendLoggedoutCount");
+
+    var activeVal = parseInt(active, 10) || 0;
+    var overVal = parseInt(overlimit, 10) || 0;
+    var loggedVal = parseInt(loggedout, 10) || 0;
+    var total = activeVal + overVal + loggedVal;
+
+    if (donutCenter) donutCenter.textContent = activeVal;
+    if (donutLabel) {
+      donutLabel.textContent = total > 0 ? "AKTİF" : "DÜĞÜM YOK";
+      donutLabel.style.color = total > 0 ? "#10B981" : "var(--text-muted)";
+    }
+    if (legActive) legActive.textContent = "(" + activeVal + ")";
+    if (legOver) legOver.textContent = "(" + overVal + ")";
+    if (legLogged) legLogged.textContent = "(" + loggedVal + ")";
+
+    if (!canvas || typeof Chart === "undefined") return;
+
+    var dark = isDarkMode();
+    var chartData = total > 0 ? [activeVal, overVal, loggedVal] : [1];
+    var chartColors = total > 0
+      ? ["#10B981", "#E30613", "#94A3B8"]
+      : [dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"];
+
+    // Smooth data morphing if instance already exists and not a full rebuild
+    if (donutChartInstance && isUpdate) {
+      donutChartInstance.data.labels = total > 0 ? ["Çevrimiçi Düğümler", "Uyarı / Bekleyen", "Çevrimdışı Düğümler"] : ["Kayıtlı Düğüm Yok"];
+      donutChartInstance.data.datasets[0].data = chartData;
+      donutChartInstance.data.datasets[0].backgroundColor = chartColors;
+      donutChartInstance.update({
+        duration: 600,
+        easing: "easeOutQuart"
+      });
+      return;
+    }
+
+    if (donutChartInstance) {
+      donutChartInstance.destroy();
+      donutChartInstance = null;
+    }
+
+    var ctx = canvas.getContext("2d");
+    donutChartInstance = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: total > 0 ? ["Çevrimiçi Düğümler", "Uyarı / Bekleyen", "Çevrimdışı Düğümler"] : ["Kayıtlı Düğüm Yok"],
+        datasets: [
+          {
+            data: chartData,
+            backgroundColor: chartColors,
+            borderWidth: 0,
+            hoverOffset: total > 0 ? 5 : 0,
+            cutout: "76%"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600, easing: "easeOutQuart" },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            enabled: total > 0,
+            backgroundColor: dark ? "#1E293B" : "#0F172A",
+            titleColor: "#F8FAFC",
+            bodyColor: "#CBD5E1",
+            padding: 9,
+            cornerRadius: 7,
+            displayColors: true,
+            callbacks: {
+              label: function (context) {
+                var val = context.raw || 0;
+                var pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                return " " + context.label + ": " + val + " (% " + pct + ")";
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* =========================================================================
+     Time Filter & Dropdown Handlers
+     ========================================================================= */
+  function updateActivityPills(timeRange) {
+    var group = document.getElementById("activitySegmentedGroup");
+    if (!group) return;
+    var btns = group.querySelectorAll(".segmented-pill-btn");
+    btns.forEach(function (b) {
+      b.classList.remove("active");
+      b.removeAttribute("style");
+      var text = b.textContent.trim().toUpperCase();
+      if ((timeRange === "1h" && text === "1S") ||
+        (timeRange === "6h" && text === "6S") ||
+        (timeRange === "12h" && text === "12S") ||
+        (timeRange === "24h" && text === "24S") ||
+        (timeRange === "7d" && text === "7G") ||
+        (timeRange === "30d" && text === "30G") ||
+        (timeRange === "custom" && text === "ÖZEL")) {
+        b.classList.add("active");
+      }
+    });
+  }
+
+  function updateDonutPills(timeRange) {
+    var group = document.getElementById("donutTimeFilterGroup");
+    if (!group) return;
+    var btns = group.querySelectorAll(".segmented-pill-btn");
+    btns.forEach(function (b) {
+      b.classList.remove("active");
+      b.removeAttribute("style");
+      var text = b.textContent.trim().toUpperCase();
+      if ((timeRange === "all" && text === "TÜMÜ") ||
+        (timeRange === "24h" && text === "24S") ||
+        (timeRange === "7d" && text === "7G") ||
+        (timeRange === "30d" && text === "30G")) {
+        b.classList.add("active");
+      }
+    });
+  }
+
+  async function onActivityTimeFilterChange(timeRange) {
+    localStorage.setItem('zk_dashboard_activity_range', timeRange);
+
+    var group = document.getElementById("activitySegmentedGroup");
+    var cap = document.getElementById("activityCustomActiveGroup");
+    if (cap && timeRange !== "custom") cap.style.display = "none";
+    if (group && timeRange !== "custom") group.style.display = "inline-flex";
+
+    updateActivityPills(timeRange);
+
+    try {
+      var res = await fetch(`/api/dashboard/activity/?range=${timeRange}`);
+      var data = await res.json();
+      if (data && data.labels && data.counts) {
+        window.currentActivityLabels = data.labels;
+        window.currentActivityCounts = data.counts;
+        renderSessionActivityChart(data.labels, data.counts, true);
+      }
+    } catch (e) {
+      console.error("Activity API error:", e);
+    }
+  }
+
+  async function onDonutTimeFilterChange(timeRange) {
+    localStorage.setItem('zk_dashboard_donut_range', timeRange);
+    updateDonutPills(timeRange);
+
+    try {
+      var res = await fetch(`/api/dashboard/distribution/?range=${timeRange}`);
+      var data = await res.json();
+      if (data) {
+        renderRealDonutChart(data.online, data.warning, data.offline, true);
+      }
+    } catch (e) {
+      console.error("Donut API error:", e);
+    }
+  }
+
+  function toggleCustomDropdown(menuId, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    var menu = document.getElementById(menuId);
+    if (!menu) return;
+    var isOpen = menu.style.display === "block" || menu.classList.contains("show");
+    document.querySelectorAll(".custom-select-menu").forEach(function (el) {
+      el.style.display = "none";
+      el.classList.remove("show");
+    });
+    if (!isOpen) {
+      menu.style.display = "block";
+      menu.classList.add("show");
+    }
+  }
+
+  function exportChartAsPNG(canvasId, filename) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    var tempCanvas = document.createElement("canvas");
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    var ctx = tempCanvas.getContext("2d");
+    ctx.fillStyle = isDarkMode() ? "#141926" : "#FFFFFF";
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    ctx.drawImage(canvas, 0, 0);
+    var link = document.createElement("a");
+    link.download = filename || "grafik.png";
+    link.href = tempCanvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function exportActivityAsCSV() {
+    var labels = window.currentActivityLabels && window.currentActivityLabels.length ? window.currentActivityLabels : ["00:00"];
+    var counts = window.currentActivityCounts && window.currentActivityCounts.length ? window.currentActivityCounts : [0];
+    var csvContent = "\uFEFFZaman Dilimi,Islem ve Olay Sayisi\n";
+    for (var i = 0; i < labels.length; i++) {
+      csvContent += '"' + (labels[i] || "") + '",' + (counts[i] || 0) + "\n";
+    }
+    var blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "islem-aktivitesi.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function exportActivityAsJSON() {
+    var labels = window.currentActivityLabels && window.currentActivityLabels.length ? window.currentActivityLabels : ["00:00"];
+    var counts = window.currentActivityCounts && window.currentActivityCounts.length ? window.currentActivityCounts : [0];
+    var data = [];
+    for (var i = 0; i < labels.length; i++) {
+      data.push({ time_bucket: labels[i], count: counts[i] || 0 });
+    }
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "islem-aktivitesi.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function exportDonutAsCSV() {
+    var statsEl = document.getElementById("dashboardStatsData");
+    var active = statsEl ? statsEl.getAttribute("data-active") || 0 : 0;
+    var overlimit = statsEl ? statsEl.getAttribute("data-overlimit") || 0 : 0;
+    var loggedout = statsEl ? statsEl.getAttribute("data-sent") || 0 : 0;
+    var csvContent = `\uFEFFKategori,Adet\n"Cevrimici",${active}\n"Uyari",${overlimit}\n"Cevrimdisi",${loggedout}\n`;
+    var blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "dugum-dagilimi.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function exportDonutAsJSON() {
+    var statsEl = document.getElementById("dashboardStatsData");
+    var data = {
+      online: statsEl ? parseInt(statsEl.getAttribute("data-active"), 10) || 0 : 0,
+      warning: statsEl ? parseInt(statsEl.getAttribute("data-overlimit"), 10) || 0 : 0,
+      offline: statsEl ? parseInt(statsEl.getAttribute("data-sent"), 10) || 0 : 0,
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "dugum-dagilimi.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /* Card Dropdown Menu Toggle */
+  function toggleDashboardCardMenu(menuId, e) {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    var menu = document.getElementById(menuId);
+    if (!menu) return;
+    
+    // Close other menus first
+    document.querySelectorAll('.zk-card-dropdown-menu').forEach(function(m) {
+      if (m.id !== menuId) m.classList.remove('show');
+    });
+    
+    menu.classList.toggle('show');
+  }
+
+  // Close menus on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.zk-menu-dropdown-wrap')) {
+      document.querySelectorAll('.zk-card-dropdown-menu').forEach(function(m) {
+        m.classList.remove('show');
+      });
+    }
+  });
+
+  /* Live Ping Engine */
+  async function pingDevice(deviceId, btn) {
+    if (!deviceId) return;
+    var originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⟳ Ping...';
+    try {
+      var res = await fetch(`/api/devices/${deviceId}/ping/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || ''
+        }
+      });
+      var data = await res.json();
+      if (data.success) {
+        btn.innerHTML = `✓ ${data.latency_ms}ms`;
+        btn.style.color = '#10B981';
+        var badge = document.getElementById(`status-badge-${deviceId}`);
+        if (badge) {
+          badge.className = 'badge green';
+          badge.textContent = 'Çevrimiçi';
+        }
+      } else {
+        btn.innerHTML = '✕ Yanıt Yok';
+        btn.style.color = '#EF4444';
+      }
+    } catch (e) {
+      btn.innerHTML = '✕ Hata';
+      btn.style.color = '#EF4444';
+    }
+    setTimeout(function () {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      btn.style.color = '';
+      if (window.lucide) window.lucide.createIcons();
+    }, 3000);
+  }
+
+  /* Date Popover - Dynamically Anchored to Trigger Button */
+  function openCustomDateRangeModal(target, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    window.customDateRangeTarget = target || 'activity';
+    var popover = document.getElementById("customDateRangePopover");
+    if (!popover) return;
+
+    var btn = e ? (e.currentTarget || e.target) : null;
+    if (btn) {
+      var rect = btn.getBoundingClientRect();
+      popover.style.position = 'fixed';
+      popover.style.top = (rect.bottom + 8) + 'px';
+      var popoverWidth = 340;
+      var left = rect.right - popoverWidth;
+      if (left < 10) left = 10;
+      if (left + popoverWidth > window.innerWidth - 10) {
+        left = window.innerWidth - popoverWidth - 10;
+      }
+      popover.style.left = left + 'px';
+      popover.style.right = 'auto';
+    }
+
+    setCustomDateRangePreset('last7d');
+    popover.style.display = "block";
+  }
+
+  function closeCustomDateRangeModal() {
+    var popover = document.getElementById("customDateRangePopover");
+    if (popover) popover.style.display = "none";
+  }
+
+  function setCustomDateRangePreset(preset) {
+    var now = new Date();
+    var start = new Date();
+
+    if (preset === 'today') {
+      start.setHours(0, 0, 0, 0);
+    } else if (preset === 'yesterday') {
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      now.setDate(now.getDate() - 1);
+      now.setHours(23, 59, 59, 999);
+    } else if (preset === 'last7d') {
+      start.setDate(start.getDate() - 7);
+    } else if (preset === 'last30d') {
+      start.setDate(start.getDate() - 30);
+    } else if (preset === 'thisMonth') {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+    }
+
+    var sInput = document.getElementById("customStartDateInput");
+    var eInput = document.getElementById("customEndDateInput");
+    if (sInput) sInput.value = start.toISOString().slice(0, 10);
+    if (eInput) eInput.value = now.toISOString().slice(0, 10);
+
+    // Highlight active preset chip
+    document.querySelectorAll(".popover-preset-chip").forEach(function (chip) {
+      chip.style.background = "var(--bg-surface)";
+      chip.style.color = "var(--text-primary)";
+      chip.style.borderColor = "var(--border-default)";
+    });
+    var currentChip = document.querySelector(`.popover-preset-chip[onclick*="${preset}"]`);
+    if (currentChip) {
+      currentChip.style.background = "var(--zk-red, #E30613)";
+      currentChip.style.color = "#ffffff";
+      currentChip.style.borderColor = "var(--zk-red, #E30613)";
+    }
+  }
+
+  async function applyDashboardCustomDateRange() {
+    var sInput = document.getElementById("customStartDateInput");
+    var eInput = document.getElementById("customEndDateInput");
+    var startDate = sInput ? sInput.value : '';
+    var endDate = eInput ? eInput.value : '';
+
+    closeCustomDateRangeModal();
+
+    var group = document.getElementById("activitySegmentedGroup");
+    var cap = document.getElementById("activityCustomActiveGroup");
+    var lbl = document.getElementById("activityCustomDateLabel");
+    if (group && cap && lbl && startDate && endDate) {
+      group.style.display = "none";
+      lbl.textContent = startDate + " — " + endDate;
+      cap.style.display = "inline-flex";
+    }
+
+    try {
+      var res = await fetch(`/api/dashboard/activity/?range=custom&start_date=${startDate}&end_date=${endDate}`);
+      var data = await res.json();
+      if (data && data.labels && data.counts) {
+        window.currentActivityLabels = data.labels;
+        window.currentActivityCounts = data.counts;
+        renderSessionActivityChart(data.labels, data.counts, true);
+      }
+    } catch (e) {
+      console.error("Custom Range API error:", e);
+    }
+  }
+
+  function clearCustomDateRange(target) {
+    var group = document.getElementById("activitySegmentedGroup");
+    var cap = document.getElementById("activityCustomActiveGroup");
+    if (group && cap) {
+      cap.style.display = "none";
+      group.style.display = "inline-flex";
+    }
+    onActivityTimeFilterChange("24h");
+  }
+
+  // Outside click to close date popover
+  document.addEventListener("click", function (e) {
+    var popover = document.getElementById("customDateRangePopover");
+    if (popover && popover.style.display === "block") {
+      if (!popover.contains(e.target) && !e.target.closest(".segmented-pill-btn") && !e.target.closest(".custom-active-capsule")) {
+        closeCustomDateRangeModal();
+      }
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,341 @@
+/**
+ * ZK Remote Operations Center - Sidebar Styles
+ * Smooth animated collapse/expand with hover flyout
+ */
+
+.app-sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-sidebar);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.26s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 50;
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  user-select: none;
+}
+
+.app-sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+  overflow: visible !important;
+}
+
+/* ==========================================================================
+   1. Brand Header
+   ========================================================================== */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  height: var(--header-height);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: padding 0.26s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.app-sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-logo-box, .sidebar-logo-icon {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 8px !important;
+  background: #FFFFFF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25) !important;
+  border: 1px solid rgba(220, 38, 38, 0.15) !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.sidebar-logo-img, .sidebar-brand img {
+  width: 36px !important;
+  height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.sidebar-brand-texts {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+}
+
+.sidebar-brand-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sidebar-brand-sub {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #DC2626;
+  text-transform: uppercase;
+}
+
+.app-sidebar.collapsed .sidebar-brand-texts {
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+  display: none;
+}
+
+/* ==========================================================================
+   2. Menu Search Box
+   ========================================================================== */
+.sidebar-search {
+  padding: 12px 14px 6px;
+  transition: opacity 0.2s ease;
+}
+
+.app-sidebar.collapsed .sidebar-search {
+  display: none;
+}
+
+.sidebar-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.sidebar-search-bar:focus-within {
+  border-color: var(--accent-primary);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.sidebar-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+/* ==========================================================================
+   3. Navigation Sections & Links
+   ========================================================================== */
+.sidebar-nav {
+  flex: 1;
+  padding: 8px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: padding 0.26s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.app-sidebar.collapsed .sidebar-nav {
+  padding: 10px 8px 20px;
+  align-items: center;
+  overflow: visible !important;
+}
+
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.nav-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 6px 10px 3px;
+  text-transform: uppercase;
+  transition: opacity 0.2s ease;
+}
+
+.app-sidebar.collapsed .nav-section-title {
+  display: none;
+}
+
+/* Base Nav Item */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  color: var(--text-sidebar);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  width: 100%;
+  font-family: inherit;
+}
+
+.nav-item:hover {
+  background: var(--bg-sidebar-item-hover);
+  color: var(--text-primary);
+}
+
+/* Active State: Red Tint Pill */
+.nav-item.active {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #DC2626;
+  font-weight: 600;
+}
+
+.nav-item.active .nav-item-icon {
+  color: #DC2626;
+}
+
+.nav-item-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.nav-item-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nav-item-arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-tree.open > .nav-item .nav-item-arrow {
+  transform: rotate(180deg);
+}
+
+/* Collapsed Nav Item */
+.app-sidebar.collapsed .nav-item {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+  margin: 0 auto;
+}
+
+.app-sidebar.collapsed .nav-item-label,
+.app-sidebar.collapsed .nav-item-arrow {
+  display: none;
+}
+
+/* ==========================================================================
+   4. Tree Children & Collapsed Hover Flyout
+   ========================================================================== */
+.nav-tree-children {
+  display: none;
+  flex-direction: column;
+  padding-left: 36px;
+  margin-top: 2px;
+  gap: 2px;
+}
+
+.nav-tree.open > .nav-tree-children {
+  display: flex;
+}
+
+.nav-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+.nav-sub-item:hover {
+  background: var(--bg-sidebar-item-hover);
+  color: var(--text-primary);
+}
+
+.nav-sub-item.active {
+  color: #DC2626;
+  font-weight: 600;
+}
+
+/* COLLAPSED HOVER FLYOUT MENU (SEAMLESS - NO ACCIDENTAL CLOSE) */
+.app-sidebar.collapsed .nav-tree {
+  position: relative;
+  width: 100%;
+}
+
+.app-sidebar.collapsed .nav-tree-children {
+  display: none !important;
+  position: absolute;
+  left: 64px;
+  top: 0;
+  min-width: 210px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-dropdown);
+  padding: 8px;
+  z-index: 99999;
+  margin-top: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Invisible hover bridge */
+.app-sidebar.collapsed .nav-tree-children::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  background: transparent;
+}
+
+.app-sidebar.collapsed .nav-tree:hover > .nav-tree-children {
+  display: flex !important;
+  animation: flyoutIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes flyoutIn {
+  from { opacity: 0; transform: translateX(6px); }
+  to { opacity: 1; transform: translateX(0); }
+}

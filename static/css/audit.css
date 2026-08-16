@@ -1,0 +1,177 @@
+/**
+ * ZK Remote Operations Center - Enterprise SIEM Compliance & Audit CSS
+ * Dark/Light Glassmorphic SOC SIEM Threat & Event Stream
+ */
+
+.siem-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.siem-hero-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.siem-toolbar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--card-radius);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.siem-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 38px;
+  min-width: 320px;
+  flex: 1;
+  transition: all 0.2s ease;
+}
+
+.siem-search-box:focus-within {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--accent-blue-bg);
+}
+
+.siem-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+  width: 100%;
+  font-family: inherit;
+}
+
+.siem-kql-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-blue);
+  background: var(--accent-blue-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* SIEM Event Stream Table Card */
+.siem-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+
+.siem-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.siem-table th {
+  background: var(--bg-surface);
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.siem-table td {
+  padding: 11px 14px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.siem-event-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.siem-event-row:hover {
+  background-color: var(--bg-card-hover);
+}
+
+.siem-event-row.expanded {
+  background-color: var(--sidebar-active);
+}
+
+.siem-event-row.expanded .row-expand-arrow {
+  transform: rotate(90deg);
+}
+
+.row-expand-arrow {
+  transition: transform 0.2s ease;
+  color: var(--text-muted);
+  display: inline-block;
+}
+
+.siem-detail-row {
+  display: none;
+  background-color: var(--bg-surface);
+}
+
+.siem-event-row.expanded + .siem-detail-row {
+  display: table-row;
+}
+
+.siem-detail-box {
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  font-size: 12px;
+  border-bottom: 2px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
+.siem-detail-item-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.siem-detail-item-value {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.siem-json-view {
+  grid-column: 1 / -1;
+  background: #080B11;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: #A0AEC0;
+  overflow-x: auto;
+  line-height: 1.5;
+}

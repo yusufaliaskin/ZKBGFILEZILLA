@@ -1,0 +1,133 @@
+/**
+ * ZK Remote Operations Center - Design Tokens & Red Theme Variables
+ */
+
+:root, [data-theme="light"] {
+  /* Surface & Background Colors */
+  --bg-app: #F8FAFC;
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F1F5F9;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFC;
+  --bg-card-active: #F1F5F9;
+  --bg-elevated: #FFFFFF;
+
+  /* Sidebar */
+  --bg-sidebar: #FFFFFF;
+  --bg-sidebar-item-hover: #F8FAFC;
+  --bg-sidebar-item-active: rgba(220, 38, 38, 0.08);
+  --text-sidebar: #64748B;
+  --text-sidebar-active: #DC2626;
+  --border-sidebar: #E2E8F0;
+
+  /* Borders & Dividers */
+  --border-color: #E2E8F0;
+  --border-light: #F1F5F9;
+  --border-focus: #DC2626;
+
+  /* Typography */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-inverse: #FFFFFF;
+
+  /* Brand Accents */
+  --accent-primary: #DC2626;
+  --accent-hover: #B91C1C;
+  --accent-dim: rgba(220, 38, 38, 0.08);
+  --accent-border: rgba(220, 38, 38, 0.25);
+  --accent-glow: 0 4px 14px rgba(220, 38, 38, 0.35);
+
+  /* Status Colors */
+  --status-online: #10B981;
+  --status-online-bg: rgba(16, 185, 129, 0.1);
+  --status-warning: #F59E0B;
+  --status-warning-bg: rgba(245, 158, 11, 0.1);
+  --status-offline: #DC2626;
+  --status-offline-bg: rgba(220, 38, 38, 0.1);
+  --status-unknown: #64748B;
+  --status-unknown-bg: rgba(100, 116, 139, 0.1);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 16px 36px -4px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 12px 32px -4px rgba(0, 0, 0, 0.12);
+
+  /* Dimensions */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', Consolas, Monaco, monospace;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 80px;
+  --header-height: 68px;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --transition-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  /* Surface & Background Colors */
+  --bg-app: #0B0F19;
+  --bg-primary: #0F172A;
+  --bg-secondary: #131D31;
+  --bg-card: #0F172A;
+  --bg-card-hover: #17233D;
+  --bg-card-active: #1C2B4B;
+  --bg-elevated: #152238;
+
+  /* Sidebar */
+  --bg-sidebar: #0B0F19;
+  --bg-sidebar-item-hover: rgba(255, 255, 255, 0.05);
+  --bg-sidebar-item-active: rgba(220, 38, 38, 0.15);
+  --text-sidebar: #94A3B8;
+  --text-sidebar-active: #F87171;
+  --border-sidebar: #1E293B;
+
+  /* Borders & Dividers */
+  --border-color: #1E293B;
+  --border-light: #152238;
+  --border-focus: #EF4444;
+
+  /* Typography */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-inverse: #0F172A;
+
+  /* Brand Accents */
+  --accent-primary: #EF4444;
+  --accent-hover: #DC2626;
+  --accent-dim: rgba(239, 68, 68, 0.15);
+  --accent-border: rgba(239, 68, 68, 0.35);
+  --accent-glow: 0 4px 16px rgba(239, 68, 68, 0.4);
+
+  /* Status Colors */
+  --status-online: #10B981;
+  --status-online-bg: rgba(16, 185, 129, 0.15);
+  --status-warning: #F59E0B;
+  --status-warning-bg: rgba(245, 158, 11, 0.15);
+  --status-offline: #EF4444;
+  --status-offline-bg: rgba(239, 68, 68, 0.15);
+  --status-unknown: #64748B;
+  --status-unknown-bg: rgba(100, 116, 139, 0.15);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 36px -4px rgba(0, 0, 0, 0.7);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-dropdown: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+/* Smooth Theme Switching Transitions */
+body, .app-sidebar, .topbar, .dash-metric-card, .table-container, .modal-container, .siem-chart-card, .dash-chart-card, .terminal-top-toolbar {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease !important;
+}
